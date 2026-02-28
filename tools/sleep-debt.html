@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>睡眠負債スコア | ツールNavi</title>
+  <meta name="description" content="就寝・起床時刻を入力するだけで睡眠負債スコアとパフォーマンス指数を算出。今日の運用指針と改善アクションをお知らせします。">
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --card: rgba(18,20,26,0.92);
+      --text: #e9eef6;
+      --muted: #8a93a8;
+      --line: #222734;
+      --accent: #6aa7ff;
+      --ok: #5ee39a;
+      --warn: #ffd166;
+      --bad: #ff6b6b;
+      --violet: #caa7ff;
+      --radius: 18px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', Roboto, sans-serif;
+      background: linear-gradient(180deg, #07080c 0%, #0b0c10 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ===== HEADER ===== */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 60px;
+      background: rgba(12,13,18,0.95);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 17px;
+      font-weight: 800;
+    }
+    .back-link {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    /* ===== LAYOUT ===== */
+    main { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    /* ===== HERO ===== */
+    .hero { margin-bottom: 32px; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+    .dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px rgba(106,167,255,0.5);
+    }
+    h1 { font-size: 28px; font-weight: 800; line-height: 1.25; margin-bottom: 10px; }
+    .hero p { font-size: 14px; color: var(--muted); line-height: 1.75; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 0.7px;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+
+    /* ===== FORM ===== */
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .form-group { display: grid; gap: 8px; }
+    .field-label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .req { color: var(--bad); }
+    input[type="time"], select {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    input[type="time"]:focus, select:focus { border-color: rgba(106,167,255,0.5); }
+    select option { background: #12141a; }
+
+    .radio-grid { display: grid; gap: 8px; }
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.02);
+      font-size: 13px;
+      color: var(--text);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .radio-label:hover { border-color: rgba(106,167,255,0.4); background: rgba(106,167,255,0.04); }
+    .radio-label input { accent-color: var(--accent); flex-shrink: 0; }
+
+    .divider { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+
+    .optional-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 0;
+      user-select: none;
+      transition: color 0.15s;
+    }
+    .optional-toggle:hover { color: var(--accent); }
+    .toggle-arrow { font-size: 10px; transition: transform 0.2s; display: inline-block; }
+    .optional-toggle.open .toggle-arrow { transform: rotate(90deg); }
+    .optional-body { display: none; margin-top: 14px; }
+    .optional-body.visible { display: block; }
+
+    .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .btn {
+      padding: 12px 22px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: filter 0.15s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn.primary {
+      background: linear-gradient(90deg, rgba(106,167,255,0.88), rgba(202,167,255,0.85));
+      border-color: transparent;
+      color: #0b0c10;
+    }
+    .btn.outline { border-color: rgba(106,167,255,0.35); color: var(--accent); }
+    .footnote { font-size: 12px; color: var(--muted); line-height: 1.7; margin-top: 14px; }
+
+    /* ===== RESULT ===== */
+    #result-card { display: none; }
+
+    .gauges-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .gauge-block {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 18px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+    .gauge-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+    .gauge-wrap { position: relative; width: 104px; height: 104px; }
+    .gauge-wrap svg { display: block; }
+    .gauge-num {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -56%);
+      font-size: 24px;
+      font-weight: 800;
+      line-height: 1;
+    }
+    .gauge-denom {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, 30%);
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .gauge-hint { font-size: 11px; color: var(--muted); text-align: center; }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .stat-item {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 13px 10px;
+      text-align: center;
+    }
+    .stat-val { font-size: 15px; font-weight: 700; }
+    .stat-lbl { font-size: 10px; color: var(--muted); margin-top: 4px; }
+
+    .mode-block {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 16px 18px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+      margin-bottom: 14px;
+      transition: border-color 0.3s;
+    }
+    .mode-emoji { font-size: 28px; line-height: 1; }
+    .mode-sublabel { font-size: 11px; color: var(--muted); margin-bottom: 5px; font-weight: 600; letter-spacing: 0.4px; }
+    .mode-name { font-size: 20px; font-weight: 800; line-height: 1.1; }
+    .mode-desc { font-size: 12px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+
+    .action-block {
+      padding: 15px 16px;
+      border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.02);
+      margin-bottom: 18px;
+    }
+    .action-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+    .action-text { font-size: 14px; line-height: 1.65; }
+
+    /* ===== HISTORY ===== */
+    #history-card { display: none; }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .history-chart {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      height: 70px;
+    }
+    .h-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+    .h-bar { width: 100%; border-radius: 5px 5px 0 0; min-height: 3px; }
+    .h-date { font-size: 9px; color: var(--muted); white-space: nowrap; }
+    .history-legend {
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(18,20,26,0.96);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-size: 13px;
+      color: var(--text);
+      display: none;
+      z-index: 999;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      white-space: nowrap;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: #111319;
+      border-top: 1px solid var(--line);
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
+    .footer-copy { font-size: 12px; color: #444; }
+
+    @media (max-width: 600px) {
+      header { padding: 0 16px; }
+      main { padding: 28px 14px 60px; }
+      .card { padding: 18px 16px; }
+      h1 { font-size: 22px; }
+      .form-row { grid-template-columns: 1fr; gap: 12px; }
+      footer { flex-direction: column; gap: 10px; padding: 20px 16px; }
+    }
+    @media (max-width: 400px) {
+      .gauges-row { grid-template-columns: 1fr; }
+      .stats-row { grid-template-columns: 1fr 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6aa7ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <a href="../index.html" class="back-link">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    トップへ戻る
+  </a>
+</header>
+
+<main>
+
+  <div class="hero">
+    <div class="badge">
+      <span class="dot"></span>
+      API不要 &nbsp;/&nbsp; ブラウザ完結 &nbsp;/&nbsp; 毎日記録OK
+    </div>
+    <h1>睡眠負債スコア</h1>
+    <p>寝不足を「感覚」から「数値」に変える。<br>
+       就寝・起床時刻を入力するだけで、睡眠負債スコアと今日のパフォーマンス指数を算出します。</p>
+  </div>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <div class="card-title">睡眠データを入力</div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="field-label" for="bedtime">就寝時刻 <span class="req">*</span></label>
+        <input type="time" id="bedtime" value="23:30">
+      </div>
+      <div class="form-group">
+        <label class="field-label" for="waketime">起床時刻 <span class="req">*</span></label>
+        <input type="time" id="waketime" value="06:30">
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:0;">
+      <label class="field-label">中途覚醒 <span class="req">*</span></label>
+      <div class="radio-grid" style="margin-top:8px;">
+        <label class="radio-label"><input type="radio" name="wakings" value="none" checked> なし（ぐっすり眠れた）</label>
+        <label class="radio-label"><input type="radio" name="wakings" value="1"> 1回 <span style="color:var(--muted);font-size:12px;">（−8pt）</span></label>
+        <label class="radio-label"><input type="radio" name="wakings" value="2+"> 2回以上 <span style="color:var(--muted);font-size:12px;">（−16pt）</span></label>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="optional-toggle" id="optToggle">
+      <span class="toggle-arrow">▶</span>
+      任意：昼寝・主観疲労を追加して精度を上げる
+    </div>
+    <div class="optional-body" id="optBody">
+      <div class="form-group" style="margin-bottom:14px;">
+        <label class="field-label" for="nap">昼寝</label>
+        <select id="nap">
+          <option value="none">なし</option>
+          <option value="short">〜20分（パワーナップ）＋5pt</option>
+          <option value="medium">20〜60分　＋2pt</option>
+          <option value="long">60分以上　−5pt（夜眠れなくなる可能性）</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="field-label">主観疲労（起きたときの実感）</label>
+        <div class="radio-grid" style="margin-top:8px;">
+          <label class="radio-label"><input type="radio" name="fatigue" value="good"> 元気 <span style="color:var(--muted);font-size:12px;">（＋5pt）</span></label>
+          <label class="radio-label"><input type="radio" name="fatigue" value="normal" checked> 普通</label>
+          <label class="radio-label"><input type="radio" name="fatigue" value="tired"> しんどい <span style="color:var(--muted);font-size:12px;">（−8pt）</span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btnCalc">スコアを算出する</button>
+      <button class="btn" id="btnReset">リセット</button>
+    </div>
+    <p class="footnote">※ 入力データはブラウザ内のみで処理・保存されます（サーバー送信なし）。</p>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div class="card" id="result-card">
+    <div class="card-title">今日の睡眠レポート</div>
+
+    <!-- Gauges -->
+    <div class="gauges-row">
+      <div class="gauge-block">
+        <div class="gauge-label">睡眠負債スコア</div>
+        <div class="gauge-wrap">
+          <svg width="104" height="104" viewBox="0 0 104 104">
+            <circle cx="52" cy="52" r="44" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+            <circle id="debtCircle" cx="52" cy="52" r="44"
+              fill="none" stroke="var(--bad)" stroke-width="10"
+              stroke-linecap="round"
+              stroke-dasharray="276.5" stroke-dashoffset="276.5"
+              transform="rotate(-90 52 52)"
+              style="transition:stroke-dashoffset 0.9s cubic-bezier(0.4,0,0.2,1),stroke 0.4s"/>
+          </svg>
+          <div class="gauge-num" id="debtNum" style="color:var(--bad)">—</div>
+          <div class="gauge-denom">/ 100</div>
+        </div>
+        <div class="gauge-hint">高いほど睡眠が不足</div>
+      </div>
+      <div class="gauge-block">
+        <div class="gauge-label">パフォーマンス指数</div>
+        <div class="gauge-wrap">
+          <svg width="104" height="104" viewBox="0 0 104 104">
+            <circle cx="52" cy="52" r="44" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+            <circle id="perfCircle" cx="52" cy="52" r="44"
+              fill="none" stroke="var(--ok)" stroke-width="10"
+              stroke-linecap="round"
+              stroke-dasharray="276.5" stroke-dashoffset="276.5"
+              transform="rotate(-90 52 52)"
+              style="transition:stroke-dashoffset 0.9s cubic-bezier(0.4,0,0.2,1),stroke 0.4s"/>
+          </svg>
+          <div class="gauge-num" id="perfNum" style="color:var(--ok)">—</div>
+          <div class="gauge-denom">/ 100</div>
+        </div>
+        <div class="gauge-hint">高いほど状態が良好</div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-item">
+        <div class="stat-val" id="statSleep">—</div>
+        <div class="stat-lbl">実睡眠時間</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="statDeficit">—</div>
+        <div class="stat-lbl">不足分</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-val" id="statPenalty">—</div>
+        <div class="stat-lbl">覚醒ペナルティ</div>
+      </div>
+    </div>
+
+    <!-- Mode -->
+    <div class="mode-block" id="modeBlock">
+      <div class="mode-emoji" id="modeEmoji">—</div>
+      <div>
+        <div class="mode-sublabel">今日の運用</div>
+        <div class="mode-name" id="modeName">—</div>
+        <div class="mode-desc" id="modeDesc">—</div>
+      </div>
+    </div>
+
+    <!-- Action -->
+    <div class="action-block">
+      <div class="action-label">今日の一手</div>
+      <div class="action-text" id="actionText">—</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btnShare">結果をシェア</button>
+      <button class="btn outline" id="btnCopy">テキストコピー</button>
+    </div>
+    <p class="footnote">
+      ※ スコアは生活の目安です。医療的診断ではありません。<br>
+      ※ 強い眠気・不眠が続く場合は専門家にご相談ください。
+    </p>
+  </div>
+
+  <!-- HISTORY CARD -->
+  <div class="card" id="history-card">
+    <div class="history-header">
+      <div class="card-title" style="margin-bottom:0;">週間パフォーマンス推移</div>
+      <button class="btn" id="btnClearLog" style="padding:5px 12px;font-size:11px;">ログ削除</button>
+    </div>
+    <div class="history-chart" id="historyChart"></div>
+    <div class="history-legend">
+      <span>パフォーマンス指数（直近7日）</span>
+      <span id="histAvg"></span>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-logo">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <div class="footer-copy">© Copyright Information.</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================
+   CONSTANTS
+=========================== */
+const STORAGE_KEY = 'toolnavi_sleepDebt_v1';
+const BASE_MIN    = 450; // 7.5h baseline
+const CIRC        = 2 * Math.PI * 44; // ≈ 276.5
+
+const MODE = {
+  attack:   { emoji: '🚀', name: '攻め',     color: 'var(--ok)',     desc: '重要タスク・決断・創作を午前に固める。脳が一番動く時間を使い切る。' },
+  normal:   { emoji: '✅', name: '通常',     color: 'var(--accent)', desc: '計画通りに進め、90分ごとに短い休憩を挟む。' },
+  defend:   { emoji: '🛡', name: '守り',     color: 'var(--warn)',   desc: 'ルーチン中心。重要な判断・創作は明日以降に回す。' },
+  recovery: { emoji: '🛌', name: '回復優先', color: 'var(--bad)',    desc: '今日は負荷を下げる。早寝が最重要タスク。' },
+};
+
+const ACTIONS = {
+  attack:   '午前中に「今日もっとも重要なタスク」を1つ決め、最初の25分で動き始める。',
+  normal:   '夕方14時以降のカフェインをやめる。就寝1時間前から画面輝度を下げる。',
+  defend:   '今日のタスクリストを半分に削る。「やらないこと」を1つ書き出す。',
+  recovery: '就寝時刻を今日だけ"30分だけ"前倒しする。スマホは寝室に持ち込まない。',
+};
+
+/* ===========================
+   UTILS
+=========================== */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.style.display = 'none'; }, 2000);
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n) { return String(n).padStart(2, '0'); }
+
+function fmtMin(m) {
+  const h = Math.floor(m / 60), min = m % 60;
+  if (h === 0) return `${min}分`;
+  if (min === 0) return `${h}時間`;
+  return `${h}時間${min}分`;
+}
+
+function scoreColor(p) {
+  if (p >= 80) return 'var(--ok)';
+  if (p >= 60) return 'var(--accent)';
+  if (p >= 40) return 'var(--warn)';
+  return 'var(--bad)';
+}
+function debtColor(d) {
+  if (d <= 15) return 'var(--ok)';
+  if (d <= 35) return 'var(--accent)';
+  if (d <= 60) return 'var(--warn)';
+  return 'var(--bad)';
+}
+
+/* ===========================
+   SCORING
+=========================== */
+function calcScores(bedtime, waketime, wakings, nap, fatigue) {
+  const toMin = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  let actual = toMin(waketime) - toMin(bedtime);
+  if (actual <= 0) actual += 1440;
+  actual = Math.max(60, Math.min(960, actual));
+
+  const deficit     = Math.max(0, BASE_MIN - actual);
+  const debtScore   = Math.min(100, Math.round(deficit / BASE_MIN * 100));
+  const wakePenalty = { none: 0, '1': 8, '2+': 16 }[wakings] ?? 0;
+  // negative napCorr = recovery benefit (gets subtracted from negatives)
+  const napCorr     = { none: 0, short: -5, medium: -2, long: 5 }[nap] ?? 0;
+  const fatigueAdj  = { good: 5, normal: 0, tired: -8 }[fatigue] ?? 0;
+
+  // performance = 100 − debtScore − wakePenalty − napCorr + fatigueAdj
+  // (napCorr=-5 means -(-5)=+5 improvement; napCorr=5 means -(5)=-5 penalty)
+  const performance = Math.min(100, Math.max(0,
+    100 - debtScore - wakePenalty - napCorr + fatigueAdj
+  ));
+
+  let modeKey = 'recovery';
+  if (performance >= 80) modeKey = 'attack';
+  else if (performance >= 60) modeKey = 'normal';
+  else if (performance >= 40) modeKey = 'defend';
+
+  return { actual, deficit, debtScore, wakePenalty, napCorr, fatigueAdj, performance, modeKey };
+}
+
+/* ===========================
+   GAUGE ANIMATION
+=========================== */
+function animateGauge(circleId, numId, value, color) {
+  const offset = CIRC * (1 - value / 100);
+  const circle = document.getElementById(circleId);
+  const numEl  = document.getElementById(numId);
+  circle.style.strokeDashoffset = offset;
+  circle.style.stroke = color;
+  numEl.textContent  = value;
+  numEl.style.color  = color;
+}
+
+/* ===========================
+   RENDER RESULT
+=========================== */
+function renderResult(s) {
+  const m = MODE[s.modeKey];
+
+  // Gauges (defer so transition fires)
+  setTimeout(() => {
+    animateGauge('debtCircle', 'debtNum', s.debtScore, debtColor(s.debtScore));
+    animateGauge('perfCircle', 'perfNum', s.performance, scoreColor(s.performance));
+  }, 60);
+
+  // Stats
+  document.getElementById('statSleep').textContent    = fmtMin(s.actual);
+  document.getElementById('statDeficit').textContent  = s.deficit > 0 ? `−${fmtMin(s.deficit)}` : 'なし';
+  document.getElementById('statPenalty').textContent  = s.wakePenalty > 0 ? `−${s.wakePenalty}pt` : 'なし';
+
+  // Mode
+  const block = document.getElementById('modeBlock');
+  block.style.borderColor = m.color + '55';
+  document.getElementById('modeEmoji').textContent = m.emoji;
+  document.getElementById('modeName').textContent  = m.name;
+  document.getElementById('modeName').style.color  = m.color;
+  document.getElementById('modeDesc').textContent  = m.desc;
+
+  // Action
+  document.getElementById('actionText').textContent = ACTIONS[s.modeKey];
+
+  // Show card
+  const card = document.getElementById('result-card');
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Share text
+  const shareText = buildShare(s);
+  document.getElementById('btnCopy').onclick = async () => {
+    try { await navigator.clipboard.writeText(shareText); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = shareText;
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    toast('コピーしました ✓');
+  };
+  document.getElementById('btnShare').onclick = async () => {
+    try {
+      if (navigator.share) { await navigator.share({ text: shareText }); }
+      else { await navigator.clipboard.writeText(shareText); toast('シェア非対応のためコピーしました'); }
+    } catch { toast('キャンセルしました'); }
+  };
+}
+
+function buildShare(s) {
+  const url  = location.href.split('#')[0];
+  const mode = MODE[s.modeKey].name;
+  return `睡眠負債スコア：【${s.debtScore}】\nパフォーマンス指数：【${s.performance}】\n今日の運用：【${mode}】\n\n寝不足は感覚より先に数値に出る。\n${url}\n#睡眠負債 #生活改善 #ツールNavi`;
+}
+
+/* ===========================
+   LOCALSTORAGE LOG
+=========================== */
+function getLog() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveLog(entry) {
+  const log = getLog().filter(e => e.date !== todayStr());
+  log.unshift({ date: todayStr(), ...entry });
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(log.slice(0, 14))); } catch {}
+}
+
+function renderHistory() {
+  const log = getLog();
+  const card = document.getElementById('history-card');
+  if (log.length === 0) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+
+  const recent = log.slice(0, 7).reverse();
+  const chart  = document.getElementById('historyChart');
+  chart.innerHTML = '';
+
+  recent.forEach(e => {
+    const col  = document.createElement('div'); col.className = 'h-col';
+    const bar  = document.createElement('div'); bar.className = 'h-bar';
+    const hpx  = Math.max(3, Math.round(e.performance / 100 * 60));
+    bar.style.height     = hpx + 'px';
+    bar.style.background = scoreColor(e.performance);
+    bar.title = `${e.date}：パフォーマンス ${e.performance}`;
+    const lbl  = document.createElement('div'); lbl.className = 'h-date';
+    lbl.textContent = e.date.slice(5).replace('-', '/');
+    col.appendChild(bar); col.appendChild(lbl);
+    chart.appendChild(col);
+  });
+
+  const avg = Math.round(recent.reduce((a, e) => a + e.performance, 0) / recent.length);
+  document.getElementById('histAvg').textContent = `${recent.length}日平均：${avg}`;
+}
+
+/* ===========================
+   EVENTS
+=========================== */
+document.getElementById('optToggle').addEventListener('click', function () {
+  this.classList.toggle('open');
+  document.getElementById('optBody').classList.toggle('visible');
+});
+
+document.getElementById('btnCalc').addEventListener('click', () => {
+  const bed  = document.getElementById('bedtime').value;
+  const wake = document.getElementById('waketime').value;
+  if (!bed || !wake) { toast('就寝・起床時刻を入力してください'); return; }
+
+  const wakings = document.querySelector('input[name="wakings"]:checked')?.value || 'none';
+  const nap     = document.getElementById('nap').value;
+  const fatigue = document.querySelector('input[name="fatigue"]:checked')?.value || 'normal';
+
+  const s = calcScores(bed, wake, wakings, nap, fatigue);
+  saveLog({ performance: s.performance, debtScore: s.debtScore, modeKey: s.modeKey, sleepMin: s.actual });
+  renderResult(s);
+  renderHistory();
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  document.getElementById('bedtime').value  = '23:30';
+  document.getElementById('waketime').value = '06:30';
+  document.querySelector('input[name="wakings"][value="none"]').checked = true;
+  document.getElementById('nap').value      = 'none';
+  document.querySelector('input[name="fatigue"][value="normal"]').checked = true;
+  document.getElementById('result-card').style.display = 'none';
+  toast('リセットしました');
+});
+
+document.getElementById('btnClearLog').addEventListener('click', () => {
+  try { localStorage.removeItem(STORAGE_KEY); } catch {}
+  document.getElementById('history-card').style.display = 'none';
+  toast('ログを削除しました');
+});
+
+// Init
+renderHistory();
+</script>
+
+</body>
+</html>
