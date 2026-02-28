@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>先延ばしタイプ診断 | ツールNavi</title>
+  <meta name="description" content="先延ばしは性格ではなく構造。7問でタイプを判定し、今日からできる改善アクションを提案します。">
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --card: rgba(18,20,26,0.92);
+      --text: #e9eef6;
+      --muted: #8a93a8;
+      --line: #222734;
+      --accent: #6aa7ff;
+      --ok: #5ee39a;
+      --warn: #ffd166;
+      --bad: #ff6b6b;
+      --violet: #caa7ff;
+      --radius: 18px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', Roboto, sans-serif;
+      background: linear-gradient(180deg, #07080c 0%, #0b0c10 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ===== HEADER ===== */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 60px;
+      background: rgba(12,13,18,0.95);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .back-link {
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    /* ===== LAYOUT ===== */
+    main {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 40px 20px 80px;
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      margin-bottom: 32px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 14px;
+      letter-spacing: 0.4px;
+    }
+    .dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 14px rgba(106,167,255,0.5);
+    }
+    .hero h1 {
+      font-size: 28px;
+      font-weight: 800;
+      line-height: 1.25;
+      margin-bottom: 10px;
+    }
+    .hero p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+      margin-bottom: 14px;
+    }
+
+    /* ===== PROGRESS CARD ===== */
+    .progress-card {
+      margin-bottom: 24px;
+    }
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+    .progress-header h3 {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .status-pill {
+      font-size: 12px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .status-pill.complete {
+      color: var(--ok);
+      border-color: rgba(94,227,154,0.3);
+    }
+    .progress-track {
+      height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 99px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--violet));
+      border-radius: 99px;
+      transition: width 0.3s ease;
+    }
+    .progress-text {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .progress-text span { color: var(--text); font-weight: 600; }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      padding: 12px 20px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: filter 0.15s, background 0.15s;
+    }
+    .btn:hover { filter: brightness(1.12); }
+    .btn.primary {
+      background: linear-gradient(90deg, rgba(106,167,255,0.88), rgba(202,167,255,0.85));
+      border-color: transparent;
+      color: #0b0c10;
+    }
+    .btn.primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn.outline {
+      border-color: rgba(106,167,255,0.35);
+      color: var(--accent);
+    }
+    .footnote {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-top: 14px;
+    }
+
+    /* ===== QUESTIONS ===== */
+    .question-grid {
+      display: grid;
+      gap: 14px;
+    }
+    .q-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .q-no {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+    .q-title {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.5;
+      color: var(--text);
+    }
+    .q-pill {
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 99px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .q-pill.answered {
+      border-color: rgba(94,227,154,0.3);
+      color: var(--ok);
+    }
+    .options {
+      display: grid;
+      gap: 9px;
+    }
+    .option-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 13px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      cursor: pointer;
+      background: rgba(255,255,255,0.02);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .option-label:hover {
+      border-color: rgba(106,167,255,0.5);
+      background: rgba(106,167,255,0.04);
+    }
+    .option-label input[type="radio"] {
+      margin-top: 2px;
+      flex-shrink: 0;
+      accent-color: var(--accent);
+      width: 16px;
+      height: 16px;
+    }
+    .option-label span {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.55;
+    }
+
+    /* ===== RESULT ===== */
+    #result-card { display: none; }
+
+    .result-type-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .result-tag {
+      font-size: 11px;
+      padding: 5px 12px;
+      border-radius: 99px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+    .result-type-name {
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .result-desc {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.8;
+      margin-bottom: 20px;
+    }
+
+    .tips {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+    .tip {
+      padding: 13px 16px;
+      border-radius: 12px;
+      border: 1px dashed rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.02);
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text);
+    }
+
+    .breakdown-title {
+      font-size: 11px;
+      color: var(--muted);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+    .score-row {
+      display: grid;
+      grid-template-columns: 110px 1fr 52px;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .score-row:last-child { margin-bottom: 0; }
+    .score-name {
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .score-bar-wrap {
+      height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 99px;
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+    .score-bar {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+    }
+    .score-val {
+      font-size: 12px;
+      color: var(--muted);
+      text-align: right;
+    }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(18,20,26,0.96);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-size: 13px;
+      color: var(--text);
+      display: none;
+      white-space: nowrap;
+      z-index: 999;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: #111319;
+      border-top: 1px solid var(--line);
+      padding: 24px 40px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .footer-copy {
+      font-size: 12px;
+      color: #444;
+    }
+
+    @media (max-width: 600px) {
+      header { padding: 0 16px; }
+      main { padding: 28px 14px 60px; }
+      .card { padding: 18px 16px; }
+      .hero h1 { font-size: 22px; }
+      .score-row { grid-template-columns: 90px 1fr 40px; }
+      footer { padding: 20px 16px; flex-direction: column; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6aa7ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <a href="../index.html" class="back-link">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    トップへ戻る
+  </a>
+</header>
+
+<main>
+
+  <!-- HERO -->
+  <div class="hero">
+    <div class="badge">
+      <span class="dot"></span>
+      匿名OK &nbsp;/&nbsp; API不要 &nbsp;/&nbsp; 7問 &nbsp;/&nbsp; 4タイプ
+    </div>
+    <h1>先延ばしタイプ診断</h1>
+    <p>先延ばしは「意志の弱さ」ではなく「構造」の問題です。<br>7問に答えるだけで、あなたの先延ばしタイプと今日からできる改善アクションがわかります。</p>
+  </div>
+
+  <!-- PROGRESS CARD -->
+  <div class="card progress-card">
+    <div class="progress-header">
+      <h3>進捗</h3>
+      <div class="status-pill" id="statusPill">未完了</div>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <p class="progress-text">回答数：<span id="answeredCount">0</span> / <span id="totalCount">7</span></p>
+    <div class="actions">
+      <button class="btn primary" id="btnDiagnose" disabled>診断する</button>
+      <button class="btn" id="btnReset">リセット</button>
+    </div>
+    <p class="footnote">※ すべてブラウザ内で処理します。入力内容はサーバーに送信されません。</p>
+  </div>
+
+  <!-- QUESTIONS -->
+  <div class="question-grid" id="questions"></div>
+
+  <!-- RESULT -->
+  <div class="card" id="result-card">
+    <div class="result-type-header">
+      <div class="result-tag" id="resultTag">診断結果</div>
+      <div class="result-type-name" id="resultType">—</div>
+    </div>
+    <p class="result-desc" id="resultDesc"></p>
+    <div class="tips" id="resultTips"></div>
+
+    <div class="breakdown-title">スコア内訳</div>
+    <div id="scoreBreakdown"></div>
+
+    <div class="actions" style="margin-top: 22px;">
+      <button class="btn primary" id="btnShare">結果をシェア</button>
+      <button class="btn outline" id="btnCopy">テキストをコピー</button>
+    </div>
+    <p class="footnote" style="margin-top:16px;">
+      ※ 同点の場合は上位2タイプの「混合型」として表示します。<br>
+      ※ この構造は「不安診断」「疲労度チェック」などにも転用可能です。
+    </p>
+  </div>
+
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <div class="footer-copy">© Copyright Infomation.</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========== DATA ========== */
+const QUESTIONS = [
+  {
+    id: "q1",
+    title: "締切があるタスクに対して、いちばん近い感覚は？",
+    options: [
+      { label: "完璧に仕上げたい。中途半端が気になる", type: "perfection" },
+      { label: "面倒で後回しにしがち。気分が乗らない", type: "avoidance" },
+      { label: "疲れていて取りかかる余力がない", type: "fatigue" },
+      { label: "失敗したらどうしよう…と考えてしまう", type: "anxiety" },
+    ],
+  },
+  {
+    id: "q2",
+    title: "「始められない」最大の理由は？",
+    options: [
+      { label: "準備が足りない気がする（情報・計画・道具）", type: "perfection" },
+      { label: "他に楽しい・ラクなことがある（スマホ等）", type: "avoidance" },
+      { label: "眠い・だるい・集中が続かない", type: "fatigue" },
+      { label: "結果や評価が怖い", type: "anxiety" },
+    ],
+  },
+  {
+    id: "q3",
+    title: "自分にとって「理想の状態」でいちばん大事なのは？",
+    options: [
+      { label: "完成度の高い成果（質が最優先）", type: "perfection" },
+      { label: "ストレスが少ない（気持ちが軽い）", type: "avoidance" },
+      { label: "回復している（余裕・体力がある）", type: "fatigue" },
+      { label: "安心できる（不安が少ない）", type: "anxiety" },
+    ],
+  },
+  {
+    id: "q4",
+    title: "作業前に一番気になるのは？",
+    options: [
+      { label: "全体設計・最適ルート（無駄なく進めたい）", type: "perfection" },
+      { label: "今の気分（気分が乗るかどうか）", type: "avoidance" },
+      { label: "体調（疲れ具合・眠気・集中できるか）", type: "fatigue" },
+      { label: "周りの反応（どう思われるか・評価）", type: "anxiety" },
+    ],
+  },
+  {
+    id: "q5",
+    title: "自分の口癖に近いのは？",
+    options: [
+      { label: "「まだ足りない」「もっと良くできる」", type: "perfection" },
+      { label: "「あとでやる」「明日でもいい」", type: "avoidance" },
+      { label: "「今日は無理」「頭が回らない」", type: "fatigue" },
+      { label: "「失敗したら嫌だ」「自信がない」", type: "anxiety" },
+    ],
+  },
+  {
+    id: "q6",
+    title: "休日やスキマ時間の過ごし方は？",
+    options: [
+      { label: "計画を立てる・整える（準備や仕組み化）", type: "perfection" },
+      { label: "なんとなくスマホ・動画で時間が溶ける", type: "avoidance" },
+      { label: "とにかく休む・寝る（回復優先）", type: "fatigue" },
+      { label: "休んでいても落ち着かない・不安が残る", type: "anxiety" },
+    ],
+  },
+  {
+    id: "q7",
+    title: "タスクが終わらないとき、近い状況は？",
+    options: [
+      { label: "納得いかない（仕上がりが未完成に感じる）", type: "perfection" },
+      { label: "他のことに気が散る（脱線しやすい）", type: "avoidance" },
+      { label: "エネルギー切れ（集中が落ちる）", type: "fatigue" },
+      { label: "自信が持てない（進めるのが怖い）", type: "anxiety" },
+    ],
+  },
+];
+
+const TYPE_META = {
+  perfection: {
+    name: "完璧主義型",
+    tag: "改善の鍵：60点スタート",
+    desc: "理想が高く、完成度を重視するタイプです。この姿勢は強みでもありますが、「100点思考」が着手を遅らせたり、終わらなくなる原因になります。",
+    tips: [
+      "✅ 60点ルール：まず「60点の状態で出す」。あとで上げればOK。",
+      "⏱ タイマー固定：25分だけやると決めて動く。時間が来たら止める。",
+      "🧩 最小分割：見出し1つ、ブロック1つだけ完成させることを目標にする。",
+    ],
+    color: "var(--accent)",
+    barColor: "linear-gradient(90deg, #6aa7ff, #a0c4ff)",
+  },
+  avoidance: {
+    name: "逃避型",
+    tag: "改善の鍵：環境と入口を小さく",
+    desc: "嫌な感情（面倒・退屈・重さ）から距離を取る傾向があります。意志力よりも、環境設計と「開始のハードル」を下げる工夫が効果的です。",
+    tips: [
+      "🚪 2分着手ルール：「2分だけやる」と決めて動く（続いたら勝ち）。",
+      "📵 物理遮断：スマホを別室・機内モード・通知OFF にしてから始める。",
+      "🎯 入口の具体化：「PC開く」「資料1枚読む」のレベルまで落とす。",
+    ],
+    color: "var(--warn)",
+    barColor: "linear-gradient(90deg, #ffd166, #ffb347)",
+  },
+  fatigue: {
+    name: "疲労型",
+    tag: "改善の鍵：回復が最優先",
+    desc: "先延ばしの根本が「エネルギー不足」のタイプです。根性で押すほど逆効果になります。まず回復と負荷の調整が最短ルートです。",
+    tips: [
+      "🛌 睡眠ファースト：まず睡眠負債を減らす（30分前倒しでもOK）。",
+      "🪓 タスク半減：やることを減らす（今週の「やらないリスト」を作る）。",
+      "🌤 朝に重要タスク：脳の燃料がある時間帯に集中作業を固める。",
+    ],
+    color: "var(--ok)",
+    barColor: "linear-gradient(90deg, #5ee39a, #2ec779)",
+  },
+  anxiety: {
+    name: "不安型",
+    tag: "改善の鍵：恐れを言語化・分解",
+    desc: "失敗・評価・予測不能さがブレーキになるタイプです。不安を「言語化して小分けにする」ほど動けるようになります。",
+    tips: [
+      "📝 最悪ケース書き出し：最悪の結果を書き、具体的な対策を1つ書く。",
+      "🔬 小さな試作：完璧な本番ではなく「試作・下書き」として出す。",
+      "🧠 事実チェック：「根拠のある不安か、想像か」を分ける習慣をつける。",
+    ],
+    color: "var(--violet)",
+    barColor: "linear-gradient(90deg, #caa7ff, #a78bfa)",
+  },
+};
+
+/* ========== STATE ========== */
+const state = { answers: {} };
+
+/* ========== UTILS ========== */
+function showToast(msg) {
+  const el = document.getElementById("toast");
+  el.textContent = msg;
+  el.style.display = "block";
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => { el.style.display = "none"; }, 2000);
+}
+
+/* ========== RENDER QUESTIONS ========== */
+function renderQuestions() {
+  const container = document.getElementById("questions");
+  QUESTIONS.forEach((q, idx) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.id = q.id;
+
+    const head = document.createElement("div");
+    head.className = "q-head";
+
+    const left = document.createElement("div");
+    left.innerHTML = `<p class="q-no">Q${idx + 1}</p><p class="q-title">${q.title}</p>`;
+
+    const pill = document.createElement("div");
+    pill.className = "q-pill";
+    pill.textContent = "未回答";
+
+    head.appendChild(left);
+    head.appendChild(pill);
+
+    const opts = document.createElement("div");
+    opts.className = "options";
+    q.options.forEach((opt, j) => {
+      const id = `${q.id}_${j}`;
+      const label = document.createElement("label");
+      label.className = "option-label";
+      label.setAttribute("for", id);
+
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = q.id;
+      input.id = id;
+      input.value = opt.type;
+      input.addEventListener("change", () => {
+        state.answers[q.id] = opt.type;
+        pill.textContent = "回答済み";
+        pill.classList.add("answered");
+        updateProgress();
+      });
+
+      const span = document.createElement("span");
+      span.textContent = opt.label;
+
+      label.appendChild(input);
+      label.appendChild(span);
+      opts.appendChild(label);
+    });
+
+    card.appendChild(head);
+    card.appendChild(opts);
+    container.appendChild(card);
+  });
+}
+
+/* ========== PROGRESS ========== */
+function updateProgress() {
+  const answered = Object.keys(state.answers).length;
+  const total = QUESTIONS.length;
+  const pct = Math.round((answered / total) * 100);
+  document.getElementById("answeredCount").textContent = answered;
+  document.getElementById("progressFill").style.width = pct + "%";
+  const complete = answered === total;
+  document.getElementById("btnDiagnose").disabled = !complete;
+  const pill = document.getElementById("statusPill");
+  pill.textContent = complete ? "準備OK ✓" : "未完了";
+  pill.classList.toggle("complete", complete);
+}
+
+/* ========== CALC ========== */
+function calcScores() {
+  const score = { perfection: 0, avoidance: 0, fatigue: 0, anxiety: 0 };
+  QUESTIONS.forEach(q => {
+    const t = state.answers[q.id];
+    if (t && score[t] !== undefined) score[t]++;
+  });
+  return score;
+}
+
+function pickResult(score) {
+  const entries = Object.entries(score).sort((a, b) => b[1] - a[1]);
+  if (entries[0][1] === entries[1][1]) {
+    return { kind: "mixed", top: entries[0][0], second: entries[1][0], score };
+  }
+  return { kind: "single", top: entries[0][0], score };
+}
+
+/* ========== RENDER RESULT ========== */
+function renderResult() {
+  const score = calcScores();
+  const result = pickResult(score);
+
+  const resultCard = document.getElementById("result-card");
+  resultCard.style.display = "block";
+
+  if (result.kind === "single") {
+    const m = TYPE_META[result.top];
+    document.getElementById("resultType").textContent = m.name;
+    document.getElementById("resultType").style.color = m.color;
+    document.getElementById("resultTag").textContent = m.tag;
+    document.getElementById("resultDesc").textContent = m.desc;
+    document.getElementById("resultTips").innerHTML =
+      m.tips.map(t => `<div class="tip">${t}</div>`).join("");
+  } else {
+    const mA = TYPE_META[result.top];
+    const mB = TYPE_META[result.second];
+    document.getElementById("resultType").textContent = `混合型（${mA.name} × ${mB.name}）`;
+    document.getElementById("resultType").style.color = "var(--violet)";
+    document.getElementById("resultTag").textContent = "改善の鍵：2つの処方を薄く両方";
+    document.getElementById("resultDesc").textContent =
+      `「${mA.name}」と「${mB.name}」が同程度に出ています。片方の対策を極端にやるより、両方を"軽く"取り入れるのが最短です。`;
+    document.getElementById("resultTips").innerHTML =
+      `<div class="tip">👉 ${mA.tips[0]}</div>` +
+      `<div class="tip">👉 ${mB.tips[0]}</div>` +
+      `<div class="tip">✅ 共通：2分だけ着手 ＋ 25分タイマーで小さく始めて区切る。</div>`;
+  }
+
+  // Score breakdown
+  const breakdown = document.getElementById("scoreBreakdown");
+  breakdown.innerHTML = "";
+  const order = ["perfection", "avoidance", "fatigue", "anxiety"];
+  const max = Math.max(...Object.values(score), 1);
+  order.forEach(t => {
+    const row = document.createElement("div");
+    row.className = "score-row";
+    const m = TYPE_META[t];
+    row.innerHTML = `
+      <div class="score-name">${m.name}</div>
+      <div class="score-bar-wrap">
+        <div class="score-bar" style="width:0%;background:${m.barColor}" data-pct="${Math.round((score[t]/max)*100)}"></div>
+      </div>
+      <div class="score-val">${score[t]} / ${QUESTIONS.length}</div>
+    `;
+    breakdown.appendChild(row);
+  });
+
+  // Animate bars
+  setTimeout(() => {
+    breakdown.querySelectorAll(".score-bar").forEach(bar => {
+      bar.style.width = bar.dataset.pct + "%";
+    });
+  }, 100);
+
+  resultCard.scrollIntoView({ behavior: "smooth", block: "start" });
+
+  // Share/copy
+  const shareText = buildShareText(result);
+  document.getElementById("btnCopy").onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(shareText);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = shareText;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    showToast("コピーしました ✓");
+  };
+  document.getElementById("btnShare").onclick = async () => {
+    try {
+      if (navigator.share) {
+        await navigator.share({ text: shareText });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        showToast("シェア非対応のためコピーしました");
+      }
+    } catch {
+      showToast("キャンセルしました");
+    }
+  };
+}
+
+function buildShareText(result) {
+  const base = location.href.split("#")[0];
+  if (result.kind === "single") {
+    const name = TYPE_META[result.top].name;
+    return `先延ばしタイプ診断：私は【${name}】でした。\n先延ばしは性格じゃなく構造らしい。\n${base}\n#先延ばし診断 #ツールNavi`;
+  }
+  const a = TYPE_META[result.top].name;
+  const b = TYPE_META[result.second].name;
+  return `先延ばしタイプ診断：私は【混合型（${a}×${b}）】でした。\n先延ばしは性格じゃなく構造らしい。\n${base}\n#先延ばし診断 #ツールNavi`;
+}
+
+/* ========== RESET ========== */
+function resetAll() {
+  state.answers = {};
+  QUESTIONS.forEach(q => {
+    document.querySelectorAll(`input[name="${q.id}"]`).forEach(n => n.checked = false);
+    const card = document.getElementById(q.id);
+    const pill = card?.querySelector(".q-pill");
+    if (pill) {
+      pill.textContent = "未回答";
+      pill.classList.remove("answered");
+    }
+  });
+  document.getElementById("result-card").style.display = "none";
+  updateProgress();
+  showToast("リセットしました");
+}
+
+/* ========== INIT ========== */
+document.getElementById("totalCount").textContent = QUESTIONS.length;
+renderQuestions();
+updateProgress();
+document.getElementById("btnDiagnose").addEventListener("click", renderResult);
+document.getElementById("btnReset").addEventListener("click", resetAll);
+</script>
+
+</body>
+</html>
