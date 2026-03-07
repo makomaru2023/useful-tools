@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>人生疲労度スコア | ツールNavi</title>
+  <meta name="description" content="体の疲れではなく、人生全体の消耗を可視化する。8問で疲労タイプを判定し、今日からできる回復アクションを提示します。">
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --card: rgba(18,20,26,0.92);
+      --text: #e9eef6;
+      --muted: #8a93a8;
+      --line: #222734;
+      --accent: #6aa7ff;
+      --ok: #5ee39a;
+      --warn: #ffd166;
+      --orange: #ff9747;
+      --bad: #ff6b6b;
+      --violet: #caa7ff;
+      --radius: 18px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', Roboto, sans-serif;
+      background: linear-gradient(180deg, #07080c 0%, #0b0c10 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ===== HEADER ===== */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; height: 60px;
+      background: rgba(12,13,18,0.95);
+      border-bottom: 1px solid var(--line);
+      position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px);
+    }
+    .logo { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 800; }
+    .back-link {
+      font-size: 13px; color: var(--muted);
+      display: flex; align-items: center; gap: 6px; transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    /* ===== LAYOUT ===== */
+    main { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    /* ===== HERO ===== */
+    .hero { margin-bottom: 32px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted); margin-bottom: 14px;
+    }
+    .dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 14px rgba(106,167,255,0.5);
+    }
+    h1 { font-size: 28px; font-weight: 800; line-height: 1.25; margin-bottom: 10px; }
+    .hero p { font-size: 14px; color: var(--muted); line-height: 1.75; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3); margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      letter-spacing: 0.7px; text-transform: uppercase; margin-bottom: 20px;
+    }
+
+    /* ===== PROGRESS ===== */
+    .progress-header {
+      display: flex; justify-content: space-between;
+      align-items: center; margin-bottom: 12px;
+    }
+    .progress-header h3 { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+    .status-pill {
+      font-size: 11px; padding: 4px 11px; border-radius: 99px;
+      border: 1px solid var(--line); color: var(--muted); transition: color 0.2s, border-color 0.2s;
+    }
+    .status-pill.done { color: var(--ok); border-color: rgba(94,227,154,0.3); }
+    .prog-track {
+      height: 7px; background: rgba(255,255,255,0.05);
+      border-radius: 99px; border: 1px solid var(--line); overflow: hidden; margin-bottom: 10px;
+    }
+    .prog-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--violet));
+      border-radius: 99px; transition: width 0.3s ease;
+    }
+    .prog-count { font-size: 12px; color: var(--muted); }
+    .prog-count span { color: var(--text); font-weight: 600; }
+
+    /* ===== ACTIONS ===== */
+    .actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+    .btn {
+      padding: 12px 22px; border-radius: 12px;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.04);
+      color: var(--text); font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: filter 0.15s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn.primary {
+      background: linear-gradient(90deg, rgba(106,167,255,0.88), rgba(202,167,255,0.85));
+      border-color: transparent; color: #0b0c10;
+    }
+    .btn.primary:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn.outline { border-color: rgba(106,167,255,0.35); color: var(--accent); }
+    .footnote { font-size: 12px; color: var(--muted); line-height: 1.7; margin-top: 14px; }
+
+    /* ===== QUESTIONS ===== */
+    .q-grid { display: grid; gap: 14px; }
+    .q-head {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; gap: 12px; margin-bottom: 14px;
+    }
+    .q-no { font-size: 11px; color: var(--muted); font-weight: 700; margin-bottom: 6px; letter-spacing: 0.3px; }
+    .q-text { font-size: 16px; font-weight: 700; line-height: 1.5; }
+    .q-pill {
+      font-size: 11px; padding: 4px 10px; border-radius: 99px;
+      border: 1px solid var(--line); color: var(--muted); white-space: nowrap; flex-shrink: 0;
+    }
+    .q-pill.answered { color: var(--ok); border-color: rgba(94,227,154,0.3); }
+    .q-reverse { font-size: 11px; color: var(--accent); display: inline-block; margin-top: 4px; }
+
+    /* Choice buttons (0-3) */
+    .choice-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .choice-btn {
+      padding: 12px 6px; border-radius: 12px;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.02);
+      color: var(--muted); font-size: 13px; font-weight: 600;
+      cursor: pointer; font-family: inherit; text-align: center;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+    }
+    .choice-btn:hover { border-color: rgba(106,167,255,0.4); color: var(--text); }
+    .choice-btn.selected {
+      border-color: var(--accent);
+      background: rgba(106,167,255,0.12);
+      color: var(--accent);
+    }
+    .choice-btn.selected.reverse {
+      border-color: var(--ok);
+      background: rgba(94,227,154,0.1);
+      color: var(--ok);
+    }
+    .choice-score { font-size: 18px; font-weight: 800; }
+    .choice-label { font-size: 10px; line-height: 1.3; }
+
+    /* ===== RESULT ===== */
+    #result-card { display: none; }
+
+    /* Big score gauge */
+    .score-hero { display: flex; align-items: center; gap: 20px; margin-bottom: 12px; flex-wrap: wrap; }
+    .gauge-wrap { position: relative; width: 110px; height: 110px; flex-shrink: 0; }
+    .gauge-wrap svg { display: block; }
+    .gauge-num {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -56%);
+      font-size: 28px; font-weight: 800; line-height: 1;
+    }
+    .gauge-sub {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, 25%);
+      font-size: 11px; color: var(--muted); white-space: nowrap;
+    }
+    .score-meta { flex: 1; min-width: 150px; }
+    .zone-pill {
+      display: inline-block; padding: 6px 16px; border-radius: 99px;
+      font-size: 15px; font-weight: 800; border: 2px solid; margin-bottom: 8px;
+    }
+    .zone-caption { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+    /* Zone bar */
+    .zone-track {
+      display: grid; grid-template-columns: 30fr 20fr 20fr 31fr;
+      border-radius: 12px; overflow: hidden; height: 52px;
+      margin-bottom: 22px; gap: 2px;
+    }
+    .zone-seg {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700; gap: 3px;
+      opacity: 0.28; transition: opacity 0.4s;
+    }
+    .zone-seg span { font-size: 10px; font-weight: 400; }
+    .zone-seg.mild     { background: rgba(94,227,154,0.15);  color: var(--ok); }
+    .zone-seg.caution  { background: rgba(255,209,102,0.15); color: var(--warn); }
+    .zone-seg.high     { background: rgba(255,151,71,0.15);  color: var(--orange); }
+    .zone-seg.critical { background: rgba(255,107,107,0.15); color: var(--bad); }
+    .zone-seg.active   { opacity: 1; }
+
+    /* Axis radar */
+    .axis-title { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 14px; }
+    .axis-grid { display: grid; gap: 10px; margin-bottom: 22px; }
+    .axis-row { display: grid; grid-template-columns: 90px 1fr 36px; align-items: center; gap: 10px; }
+    .axis-name { font-size: 12px; color: var(--muted); }
+    .axis-bar-wrap { height: 8px; background: rgba(255,255,255,0.05); border-radius: 99px; border: 1px solid var(--line); overflow: hidden; }
+    .axis-bar-fill { height: 100%; border-radius: 99px; transition: width 0.8s ease; width: 0%; }
+    .axis-val { font-size: 12px; color: var(--muted); text-align: right; }
+
+    /* Dominant axis badge */
+    .dominant-badge {
+      display: flex; align-items: center; gap: 12px;
+      padding: 14px 16px; border-radius: 14px;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.02);
+      margin-bottom: 16px;
+    }
+    .dominant-icon { font-size: 24px; flex-shrink: 0; }
+    .dominant-name { font-size: 16px; font-weight: 800; }
+    .dominant-hint { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+
+    /* Operation mode */
+    .mode-block {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 16px; border-radius: 14px;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.02);
+      margin-bottom: 14px;
+    }
+    .mode-emoji { font-size: 26px; }
+    .mode-label-small { font-size: 11px; color: var(--muted); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.4px; }
+    .mode-name { font-size: 18px; font-weight: 800; }
+    .mode-desc { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.5; }
+
+    /* Action */
+    .action-block {
+      padding: 15px 16px; border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.02); margin-bottom: 18px;
+    }
+    .action-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+    .action-text { font-size: 14px; line-height: 1.65; }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(18,20,26,0.96); border: 1px solid var(--line); border-radius: 12px;
+      padding: 10px 18px; font-size: 13px; color: var(--text);
+      display: none; z-index: 999;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4); white-space: nowrap;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: #111319; border-top: 1px solid var(--line);
+      padding: 24px 40px; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
+    .footer-copy { font-size: 12px; color: #444; }
+
+    @media (max-width: 600px) {
+      header { padding: 0 16px; }
+      main { padding: 28px 14px 60px; }
+      .card { padding: 18px 16px; }
+      h1 { font-size: 22px; }
+      .choice-btn .choice-label { display: none; }
+      footer { flex-direction: column; gap: 10px; padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6aa7ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <a href="../index.html" class="back-link">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    トップへ戻る
+  </a>
+</header>
+
+<main>
+
+  <div class="hero">
+    <div class="badge">
+      <span class="dot"></span>
+      API不要 &nbsp;/&nbsp; 8問 &nbsp;/&nbsp; 4軸分析
+    </div>
+    <h1>人生疲労度スコア</h1>
+    <p>体の疲れではなく、「人生全体の消耗」を可視化する。<br>
+       あなたは怠けているのではなく、人生構造が重い可能性があります。</p>
+  </div>
+
+  <!-- PROGRESS CARD -->
+  <div class="card">
+    <div class="progress-header">
+      <h3>進捗</h3>
+      <div class="status-pill" id="statusPill">未完了</div>
+    </div>
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <p class="prog-count">回答数：<span id="answeredCount">0</span> / <span id="totalCount">8</span></p>
+    <div class="actions">
+      <button class="btn primary" id="btnDiagnose" disabled>疲労度を診断する</button>
+      <button class="btn" id="btnReset">リセット</button>
+    </div>
+    <p class="footnote">※ すべてブラウザ内で処理します（入力内容はサーバーに送信されません）。</p>
+  </div>
+
+  <!-- QUESTIONS -->
+  <div class="q-grid" id="questions"></div>
+
+  <!-- RESULT CARD -->
+  <div class="card" id="result-card">
+    <div class="card-title">人生疲労度レポート</div>
+
+    <!-- Big gauge + zone -->
+    <div class="score-hero">
+      <div class="gauge-wrap">
+        <svg width="110" height="110" viewBox="0 0 110 110">
+          <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+          <circle id="fatigueGauge" cx="55" cy="55" r="46"
+            fill="none" stroke="var(--ok)" stroke-width="10"
+            stroke-linecap="round"
+            stroke-dasharray="289.0" stroke-dashoffset="289.0"
+            transform="rotate(-90 55 55)"
+            style="transition:stroke-dashoffset 0.9s cubic-bezier(0.4,0,0.2,1),stroke 0.4s"/>
+        </svg>
+        <div class="gauge-num" id="gaugeNum" style="color:var(--ok)">—</div>
+        <div class="gauge-sub">/ 100</div>
+      </div>
+      <div class="score-meta">
+        <div class="zone-pill" id="zonePill">—</div>
+        <p class="zone-caption" id="zoneCaption"></p>
+      </div>
+    </div>
+
+    <!-- Zone bar -->
+    <div class="zone-track">
+      <div class="zone-seg mild"     id="z0">軽度<span>0〜29</span></div>
+      <div class="zone-seg caution"  id="z1">注意<span>30〜49</span></div>
+      <div class="zone-seg high"     id="z2">高疲労<span>50〜69</span></div>
+      <div class="zone-seg critical" id="z3">危険<span>70〜100</span></div>
+    </div>
+
+    <!-- Axis breakdown -->
+    <div class="axis-title">4軸スコア内訳</div>
+    <div class="axis-grid" id="axisGrid"></div>
+
+    <!-- Dominant axis -->
+    <div class="dominant-badge" id="dominantBadge">
+      <div class="dominant-icon" id="dominantIcon">—</div>
+      <div>
+        <div class="dominant-name" id="dominantName">—</div>
+        <div class="dominant-hint" id="dominantHint">—</div>
+      </div>
+    </div>
+
+    <!-- Operation mode -->
+    <div class="mode-block" id="modeBlock">
+      <div class="mode-emoji" id="modeEmoji">—</div>
+      <div>
+        <div class="mode-label-small">今日の運用</div>
+        <div class="mode-name" id="modeName">—</div>
+        <div class="mode-desc" id="modeDesc">—</div>
+      </div>
+    </div>
+
+    <!-- Action -->
+    <div class="action-block">
+      <div class="action-label">今日の一手</div>
+      <div class="action-text" id="actionText">—</div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btnShare">結果をシェア</button>
+      <button class="btn outline" id="btnCopy">テキストコピー</button>
+    </div>
+    <p class="footnote">
+      ※ 本ツールは生活状態の目安です。医療的診断ではありません。<br>
+      ※ 強い不調や継続する不安がある場合は、専門機関（心療内科・産業医等）への相談を推奨します。
+    </p>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-logo">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <div class="footer-copy">© Copyright Information.</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================
+   QUESTIONS DATA
+=========================== */
+const QUESTIONS = [
+  {
+    id: 'q1', axis: 'body',
+    text: '身体的に疲れていると感じる',
+    reverse: false,
+  },
+  {
+    id: 'q2', axis: 'body',
+    text: '朝からエネルギーが湧かない',
+    reverse: false,
+  },
+  {
+    id: 'q3', axis: 'mental',
+    text: '人間関係に消耗している',
+    reverse: false,
+  },
+  {
+    id: 'q4', axis: 'role',
+    text: '仕事・家庭の役割が多すぎると感じる',
+    reverse: false,
+  },
+  {
+    id: 'q5', axis: 'anxiety',
+    text: '将来に対する不安が強い',
+    reverse: false,
+  },
+  {
+    id: 'q6', axis: 'mental',
+    text: '楽しみやワクワクが最近少ない',
+    reverse: false,
+  },
+  {
+    id: 'q7', axis: null,
+    text: '最近「達成感」を感じた',
+    reverse: true, // higher = less fatigue
+  },
+  {
+    id: 'q8', axis: 'body',
+    text: '休んでも回復しにくいと感じる',
+    reverse: false,
+  },
+];
+
+const CHOICES = [
+  { score: 0, label: '全くない' },
+  { score: 1, label: '少しある' },
+  { score: 2, label: 'かなりある' },
+  { score: 3, label: '非常に強い' },
+];
+
+/* ===========================
+   AXIS META
+=========================== */
+const AXIS_META = {
+  body:    { name: '身体疲労',   icon: '💤', color: 'var(--accent)', hint: '睡眠・回復・体力が主な疲弊源です。まず「寝ること」を最優先に。' },
+  mental:  { name: '精神消耗',   icon: '🧠', color: 'var(--violet)', hint: '人間関係・情報・感情処理が主な疲弊源です。距離を取ることが回復の鍵。' },
+  role:    { name: '役割過多',   icon: '🎭', color: 'var(--warn)',   hint: '仕事・家庭での「担いすぎ」が主な疲弊源です。まず1つ手放す選択を。' },
+  anxiety: { name: '将来不安',   icon: '🌫', color: 'var(--orange)', hint: '未来への恐れが常にエネルギーを消費しています。今日1日に集中する練習を。' },
+};
+
+/* ===========================
+   ZONE / MODE DATA
+=========================== */
+const ZONE = {
+  mild:     { label: '軽度',   color: 'var(--ok)',     border: 'rgba(94,227,154,0.5)',  seg: 'z0', caption: '大きな消耗はありません。今の状態を維持しつつ、好きなことを1つ追加してみましょう。' },
+  caution:  { label: '注意',   color: 'var(--warn)',   border: 'rgba(255,209,102,0.5)', seg: 'z1', caption: '小さな積み重ねで疲労が蓄積しています。今のうちに1つ手放すことが大切です。' },
+  high:     { label: '高疲労', color: 'var(--orange)', border: 'rgba(255,151,71,0.5)',  seg: 'z2', caption: '生活構造があなたを削っています。完璧をやめ、タスクを半分にすることが回復への近道です。' },
+  critical: { label: '危険',   color: 'var(--bad)',    border: 'rgba(255,107,107,0.5)', seg: 'z3', caption: '回復が最優先です。今は前に進む時期ではなく、まず休む仕組みを作ることが重要です。' },
+};
+
+const MODE = {
+  mild:     { emoji: '🚀', name: '通常 / 攻め可',  color: 'var(--ok)',     desc: 'やりたいことや新しい挑戦を1つ追加してみる。' },
+  caution:  { emoji: '⚠️', name: '守り',          color: 'var(--warn)',   desc: '重要でないタスクを1つ断る。スケジュールの余白を意識的に作る。' },
+  high:     { emoji: '🛡', name: '守り（優先）',   color: 'var(--orange)', desc: 'ルーチンのみこなす。新しいことは来週以降に。完璧禁止を宣言する。' },
+  critical: { emoji: '🛌', name: '回復最優先',    color: 'var(--bad)',    desc: '今日の予定を最低限にまで削る。まず就寝時刻を30分前倒しする。' },
+};
+
+const ACTIONS = {
+  mild:     'やってみたいことを1つ、今日のスケジュールに入れてみる。',
+  caution:  '「やらないこと」を1つ決める。今週の中で断れる予定や役割を探す。',
+  high:     '今日のタスクを半分に減らす。リストを見て「これは明日以降でいい」を3つ選ぶ。',
+  critical: '就寝時刻を今日だけ30分前倒しする。スマホは寝る1時間前に別室へ置く。',
+};
+
+/* ===========================
+   STATE
+=========================== */
+const state = { answers: {} };
+
+/* ===========================
+   UTILS
+=========================== */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.style.display = 'none'; }, 2000);
+}
+
+function zoneFromScore(s) {
+  if (s >= 70) return 'critical';
+  if (s >= 50) return 'high';
+  if (s >= 30) return 'caution';
+  return 'mild';
+}
+
+const CIRC = 2 * Math.PI * 46; // ≈ 289.0
+
+/* ===========================
+   RENDER QUESTIONS
+=========================== */
+function renderQuestions() {
+  const container = document.getElementById('questions');
+  QUESTIONS.forEach((q, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = q.id;
+
+    const head = document.createElement('div');
+    head.className = 'q-head';
+
+    const left = document.createElement('div');
+    left.innerHTML = `
+      <div class="q-no">Q${idx + 1}${q.reverse ? ' <span class="q-reverse">★ 逆転項目</span>' : ''}</div>
+      <div class="q-text">${q.text}</div>
+    `;
+    const pill = document.createElement('div');
+    pill.className = 'q-pill';
+    pill.textContent = '未回答';
+
+    head.appendChild(left);
+    head.appendChild(pill);
+
+    const row = document.createElement('div');
+    row.className = 'choice-row';
+
+    CHOICES.forEach(choice => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn' + (q.reverse ? ' reverse-item' : '');
+      btn.dataset.value = choice.score;
+      btn.innerHTML = `<span class="choice-score">${choice.score}</span><span class="choice-label">${choice.label}</span>`;
+      btn.addEventListener('click', () => {
+        row.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        state.answers[q.id] = { value: choice.score, reverse: q.reverse };
+        pill.textContent = '回答済み';
+        pill.classList.add('answered');
+        updateProgress();
+      });
+      row.appendChild(btn);
+    });
+
+    card.appendChild(head);
+    card.appendChild(row);
+    container.appendChild(card);
+  });
+}
+
+/* ===========================
+   PROGRESS
+=========================== */
+function updateProgress() {
+  const answered = Object.keys(state.answers).length;
+  const total    = QUESTIONS.length;
+  const pct      = Math.round(answered / total * 100);
+  document.getElementById('answeredCount').textContent = answered;
+  document.getElementById('progFill').style.width = pct + '%';
+  const done = answered === total;
+  document.getElementById('btnDiagnose').disabled = !done;
+  const pill = document.getElementById('statusPill');
+  pill.textContent = done ? '準備OK ✓' : '未完了';
+  pill.classList.toggle('done', done);
+}
+
+/* ===========================
+   SCORING
+=========================== */
+function calcFatigue() {
+  let raw = 0;
+  QUESTIONS.forEach(q => {
+    const a = state.answers[q.id];
+    if (!a) return;
+    raw += a.reverse ? -a.value : a.value;
+  });
+  raw = Math.max(0, raw);
+  const score = Math.min(100, Math.round(raw / 21 * 100));
+
+  // Axis scores
+  const axis = { body: 0, mental: 0, role: 0, anxiety: 0 };
+  const axisMax = { body: 9, mental: 6, role: 3, anxiety: 3 };
+  QUESTIONS.forEach(q => {
+    const a = state.answers[q.id];
+    if (!a || !q.axis || a.reverse) return;
+    axis[q.axis] += a.value;
+  });
+
+  // Dominant axis (highest % of max)
+  let dominantKey = null, dominantRatio = -1;
+  for (const [k, v] of Object.entries(axis)) {
+    const ratio = v / axisMax[k];
+    if (ratio > dominantRatio) { dominantRatio = ratio; dominantKey = k; }
+  }
+
+  return { score, axis, axisMax, dominantKey };
+}
+
+/* ===========================
+   RENDER RESULT
+=========================== */
+function renderResult() {
+  const { score, axis, axisMax, dominantKey } = calcFatigue();
+  const zoneKey = zoneFromScore(score);
+  const z = ZONE[zoneKey];
+  const m = MODE[zoneKey];
+
+  // Gauge
+  setTimeout(() => {
+    const offset = CIRC * (1 - score / 100);
+    const gauge  = document.getElementById('fatigueGauge');
+    gauge.style.strokeDashoffset = offset;
+    gauge.style.stroke = z.color;
+    document.getElementById('gaugeNum').textContent = score;
+    document.getElementById('gaugeNum').style.color = z.color;
+  }, 60);
+
+  // Zone pill
+  const pill = document.getElementById('zonePill');
+  pill.textContent = z.label;
+  pill.style.color = z.color;
+  pill.style.borderColor = z.border;
+  pill.style.background  = z.border.replace('0.5', '0.1');
+  document.getElementById('zoneCaption').textContent = z.caption;
+
+  // Zone bar
+  ['z0','z1','z2','z3'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(z.seg).classList.add('active');
+
+  // Axis breakdown
+  const axisGrid = document.getElementById('axisGrid');
+  axisGrid.innerHTML = '';
+  const order = ['body', 'mental', 'role', 'anxiety'];
+  order.forEach(k => {
+    const meta = AXIS_META[k];
+    const val  = axis[k], max = axisMax[k];
+    const pct  = Math.round(val / max * 100);
+    const row  = document.createElement('div');
+    row.className = 'axis-row';
+    row.innerHTML = `
+      <div class="axis-name">${meta.icon} ${meta.name}</div>
+      <div class="axis-bar-wrap">
+        <div class="axis-bar-fill" style="background:${meta.color}" data-pct="${pct}"></div>
+      </div>
+      <div class="axis-val">${val} / ${max}</div>`;
+    axisGrid.appendChild(row);
+  });
+  setTimeout(() => {
+    axisGrid.querySelectorAll('.axis-bar-fill').forEach(b => {
+      b.style.width = b.dataset.pct + '%';
+    });
+  }, 80);
+
+  // Dominant axis
+  if (dominantKey) {
+    const dm = AXIS_META[dominantKey];
+    document.getElementById('dominantIcon').textContent = dm.icon;
+    document.getElementById('dominantName').textContent = `あなたは"${dm.name}型"疲労です`;
+    document.getElementById('dominantName').style.color = dm.color;
+    document.getElementById('dominantHint').textContent = dm.hint;
+    document.getElementById('dominantBadge').style.borderColor = dm.color + '44';
+  }
+
+  // Mode
+  document.getElementById('modeEmoji').textContent = m.emoji;
+  document.getElementById('modeName').textContent  = m.name;
+  document.getElementById('modeName').style.color  = m.color;
+  document.getElementById('modeDesc').textContent  = m.desc;
+  document.getElementById('modeBlock').style.borderColor = m.color + '44';
+
+  // Action
+  document.getElementById('actionText').textContent = ACTIONS[zoneKey];
+
+  // Show
+  const card = document.getElementById('result-card');
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Share
+  const shareText = buildShare(score, z.label, m.name);
+  document.getElementById('btnCopy').onclick = async () => {
+    try { await navigator.clipboard.writeText(shareText); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = shareText; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    toast('コピーしました ✓');
+  };
+  document.getElementById('btnShare').onclick = async () => {
+    try {
+      if (navigator.share) { await navigator.share({ text: shareText }); }
+      else { await navigator.clipboard.writeText(shareText); toast('シェア非対応のためコピーしました'); }
+    } catch { toast('キャンセルしました'); }
+  };
+}
+
+function buildShare(score, zone, mode) {
+  const url = location.href.split('#')[0];
+  return `人生疲労度スコア：【${score}】（${zone}）\n今日の運用：【${mode}】\n${ACTIONS[zoneFromScore(score)]}\n${url}\n#人生疲労度 #生活改善 #ツールNavi`;
+}
+
+/* ===========================
+   RESET
+=========================== */
+function resetAll() {
+  state.answers = {};
+  document.querySelectorAll('.choice-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll('.q-pill').forEach(p => {
+    p.textContent = '未回答'; p.classList.remove('answered');
+  });
+  document.getElementById('result-card').style.display = 'none';
+  updateProgress();
+  toast('リセットしました');
+}
+
+/* ===========================
+   INIT
+=========================== */
+document.getElementById('totalCount').textContent = QUESTIONS.length;
+renderQuestions();
+updateProgress();
+document.getElementById('btnDiagnose').addEventListener('click', () => {
+  if (Object.keys(state.answers).length !== QUESTIONS.length) { toast('未回答があります'); return; }
+  renderResult();
+});
+document.getElementById('btnReset').addEventListener('click', resetAll);
+</script>
+
+</body>
+</html>

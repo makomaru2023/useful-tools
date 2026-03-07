@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>不安を確率で見るツール | ツールNavi</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+      background: linear-gradient(160deg, #f0f4ff 0%, #faf0ff 100%);
+      min-height: 100vh;
+      color: #1a1a2e;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ===== HEADER ===== */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 60px;
+      background: #fff;
+      border-bottom: 1px solid #e8e8e8;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #1a1a1a;
+    }
+    .back-link {
+      font-size: 14px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .back-link:hover { color: #2563eb; }
+
+    /* ===== MAIN ===== */
+    main {
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    .tool-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .tool-badge {
+      display: inline-block;
+      background: #ede9fe;
+      color: #6d28d9;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 20px;
+      margin-bottom: 16px;
+      letter-spacing: 0.5px;
+    }
+    .tool-header h1 {
+      font-size: 30px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      line-height: 1.3;
+    }
+    .tool-header p {
+      font-size: 15px;
+      color: #666;
+      line-height: 1.7;
+    }
+
+    /* ===== PROGRESS ===== */
+    .progress-bar-wrap {
+      background: #e5e7eb;
+      border-radius: 99px;
+      height: 6px;
+      margin-bottom: 36px;
+      overflow: hidden;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #6d28d9, #a78bfa);
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+    .step-label {
+      font-size: 13px;
+      color: #888;
+      text-align: right;
+      margin-bottom: 8px;
+    }
+
+    /* ===== CARD ===== */
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 40px 36px;
+      box-shadow: 0 4px 32px rgba(109,40,217,0.08);
+      display: none;
+    }
+    .card.active { display: block; animation: fadeIn 0.35s ease; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .step-icon {
+      font-size: 40px;
+      margin-bottom: 16px;
+      display: block;
+      text-align: center;
+    }
+    .card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    .card .hint {
+      font-size: 13px;
+      color: #888;
+      text-align: center;
+      margin-bottom: 28px;
+      line-height: 1.6;
+    }
+
+    /* ===== INPUTS ===== */
+    textarea {
+      width: 100%;
+      border: 1.5px solid #e4e7ec;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 15px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 110px;
+      color: #1a1a2e;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.7;
+    }
+    textarea:focus { border-color: #6d28d9; }
+    textarea::placeholder { color: #bbb; }
+
+    .options-grid {
+      display: grid;
+      gap: 12px;
+    }
+    .option-btn {
+      width: 100%;
+      padding: 16px 20px;
+      border: 1.5px solid #e4e7ec;
+      border-radius: 12px;
+      background: #fff;
+      font-size: 15px;
+      font-family: inherit;
+      color: #333;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .option-btn:hover { border-color: #a78bfa; background: #faf5ff; }
+    .option-btn.selected {
+      border-color: #6d28d9;
+      background: #f5f3ff;
+      color: #6d28d9;
+      font-weight: 600;
+    }
+    .option-emoji { font-size: 20px; min-width: 28px; text-align: center; }
+
+    /* ===== SLIDER ===== */
+    .slider-wrap { margin-top: 8px; }
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 6px;
+      border-radius: 99px;
+      background: #e5e7eb;
+      outline: none;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #6d28d9;
+      box-shadow: 0 2px 8px rgba(109,40,217,0.3);
+      cursor: pointer;
+    }
+    .slider-value {
+      text-align: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: #6d28d9;
+      margin-top: 14px;
+    }
+    .slider-value span { font-size: 14px; font-weight: 400; color: #888; }
+
+    /* ===== NAV BUTTONS ===== */
+    .card-nav {
+      display: flex;
+      gap: 12px;
+      margin-top: 28px;
+    }
+    .btn-next {
+      flex: 1;
+      padding: 15px;
+      background: #6d28d9;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      font-family: inherit;
+    }
+    .btn-next:hover { background: #5b21b6; }
+    .btn-next:active { transform: scale(0.98); }
+    .btn-next:disabled { background: #d1d5db; cursor: not-allowed; }
+    .btn-back {
+      padding: 15px 20px;
+      background: #f3f4f6;
+      color: #555;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .btn-back:hover { background: #e5e7eb; }
+
+    /* ===== RESULT ===== */
+    #result-card { display: none; }
+    #result-card.active { display: block; }
+
+    .result-score-wrap {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin: 0 auto 28px;
+    }
+    .result-score-wrap svg {
+      transform: rotate(-90deg);
+    }
+    .score-track { fill: none; stroke: #f0e6ff; stroke-width: 14; }
+    .score-fill {
+      fill: none;
+      stroke-width: 14;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .score-center {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+    .score-number {
+      font-size: 44px;
+      font-weight: 800;
+      line-height: 1;
+      display: block;
+    }
+    .score-unit {
+      font-size: 14px;
+      color: #888;
+      font-weight: 500;
+    }
+
+    .result-label {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .result-desc {
+      text-align: center;
+      font-size: 15px;
+      color: #555;
+      line-height: 1.7;
+      margin-bottom: 28px;
+    }
+
+    .result-breakdown {
+      background: #faf5ff;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    .result-breakdown h4 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #888;
+      margin-bottom: 14px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .breakdown-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      font-size: 14px;
+    }
+    .breakdown-row:last-child { margin-bottom: 0; }
+    .breakdown-label { color: #555; }
+    .breakdown-bar-wrap {
+      flex: 1;
+      height: 8px;
+      background: #e9d5ff;
+      border-radius: 99px;
+      margin: 0 12px;
+      overflow: hidden;
+    }
+    .breakdown-bar {
+      height: 100%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #6d28d9, #a78bfa);
+      transition: width 0.8s ease;
+    }
+    .breakdown-val { font-weight: 700; color: #6d28d9; min-width: 30px; text-align: right; }
+
+    .advice-box {
+      border-left: 4px solid #6d28d9;
+      background: #f5f3ff;
+      border-radius: 0 12px 12px 0;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+    .advice-box p {
+      font-size: 14px;
+      color: #444;
+      line-height: 1.75;
+    }
+
+    .btn-retry {
+      width: 100%;
+      padding: 15px;
+      background: #fff;
+      color: #6d28d9;
+      border: 2px solid #6d28d9;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+      font-family: inherit;
+    }
+    .btn-retry:hover { background: #f5f3ff; }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: #1a1a1a;
+      padding: 24px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .footer-copy { font-size: 13px; color: #666; }
+
+    @media (max-width: 600px) {
+      header { padding: 0 20px; }
+      main { padding: 32px 16px 60px; }
+      .card { padding: 28px 20px; }
+      footer { padding: 20px 20px; flex-direction: column; gap: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <a href="../index.html" class="back-link">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    トップへ戻る
+  </a>
+</header>
+
+<main>
+  <!-- TOOL HEADER -->
+  <div class="tool-header">
+    <div class="tool-badge">メンタル・心理</div>
+    <h1>不安を確率で見るツール</h1>
+    <p>「その心配、本当に起こる？」<br>入力に答えるだけで、過剰な不安かどうかがわかります。</p>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="step-label" id="step-label">ステップ 1 / 4</div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar" id="progress-bar" style="width: 25%"></div>
+  </div>
+
+  <!-- STEP 1: 不安の内容 -->
+  <div class="card active" id="step1">
+    <span class="step-icon">😟</span>
+    <h2>今、何が不安ですか？</h2>
+    <p class="hint">できるだけ具体的に書いてみましょう。<br>ここに書いた内容は外部に送信されません。</p>
+    <textarea id="anxiety-text" placeholder="例：仕事でミスをしたせいで、クビになるかもしれない…"></textarea>
+    <div class="card-nav">
+      <button class="btn-next" id="next1" onclick="goStep(2)">次へ →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: 最悪ケースの可能性 -->
+  <div class="card" id="step2">
+    <span class="step-icon">🌪️</span>
+    <h2>最悪のケースが起きる可能性は？</h2>
+    <p class="hint">冷静に考えたとき、どのくらい現実的だと思いますか？</p>
+    <div class="options-grid" id="options-plausibility">
+      <button class="option-btn" onclick="selectOption('plausibility','1',this)"><span class="option-emoji">🌤️</span>ほぼありえない（1%以下）</button>
+      <button class="option-btn" onclick="selectOption('plausibility','2',this)"><span class="option-emoji">🌥️</span>あまりなさそう（5%くらい）</button>
+      <button class="option-btn" onclick="selectOption('plausibility','3',this)"><span class="option-emoji">⛅</span>なくはない（10〜20%くらい）</button>
+      <button class="option-btn" onclick="selectOption('plausibility','4',this)"><span class="option-emoji">🌧️</span>ある程度ありえる（30%くらい）</button>
+      <button class="option-btn" onclick="selectOption('plausibility','5',this)"><span class="option-emoji">⛈️</span>かなり現実的（50%以上）</button>
+    </div>
+    <div class="card-nav">
+      <button class="btn-back" onclick="goStep(1)">← 戻る</button>
+      <button class="btn-next" id="next2" disabled onclick="goStep(3)">次へ →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: 証拠 -->
+  <div class="card" id="step3">
+    <span class="step-icon">🔍</span>
+    <h2>その不安を裏付ける証拠は？</h2>
+    <p class="hint">「実際に何かが起きている」という根拠が<br>あるかどうかを教えてください。</p>
+    <div class="options-grid" id="options-evidence">
+      <button class="option-btn" onclick="selectOption('evidence','3',this)"><span class="option-emoji">📋</span>具体的な証拠・事実がある</button>
+      <button class="option-btn" onclick="selectOption('evidence','2',this)"><span class="option-emoji">🤔</span>少し気になることがある程度</button>
+      <button class="option-btn" onclick="selectOption('evidence','1',this)"><span class="option-emoji">🌫️</span>証拠はないが、なんとなく心配</button>
+      <button class="option-btn" onclick="selectOption('evidence','0',this)"><span class="option-emoji">❓</span>根拠は全くない</button>
+    </div>
+    <div class="card-nav">
+      <button class="btn-back" onclick="goStep(2)">← 戻る</button>
+      <button class="btn-next" id="next3" disabled onclick="goStep(4)">次へ →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: 過去の実績 -->
+  <div class="card" id="step4">
+    <span class="step-icon">📅</span>
+    <h2>過去に同じ心配が実際に起きましたか？</h2>
+    <p class="hint">これまでの経験を思い返してみてください。</p>
+    <div class="options-grid" id="options-history">
+      <button class="option-btn" onclick="selectOption('history','0',this)"><span class="option-emoji">✅</span>一度も起きたことがない</button>
+      <button class="option-btn" onclick="selectOption('history','1',this)"><span class="option-emoji">📌</span>1〜2回あった</button>
+      <button class="option-btn" onclick="selectOption('history','2',this)"><span class="option-emoji">📊</span>数回ある</button>
+      <button class="option-btn" onclick="selectOption('history','3',this)"><span class="option-emoji">🔁</span>よく起きる</button>
+    </div>
+    <div class="card-nav">
+      <button class="btn-back" onclick="goStep(3)">← 戻る</button>
+      <button class="btn-next" id="next4" disabled onclick="showResult()">結果を見る →</button>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div class="card" id="result-card">
+    <div class="result-score-wrap">
+      <svg width="180" height="180" viewBox="0 0 180 180">
+        <circle class="score-track" cx="90" cy="90" r="76"/>
+        <circle class="score-fill" id="score-circle" cx="90" cy="90" r="76"
+          stroke="#6d28d9"
+          stroke-dasharray="477.52"
+          stroke-dashoffset="477.52"/>
+      </svg>
+      <div class="score-center">
+        <span class="score-number" id="score-display">0</span>
+        <span class="score-unit">過剰不安度</span>
+      </div>
+    </div>
+
+    <div class="result-label" id="result-label">分析中...</div>
+    <div class="result-desc" id="result-desc"></div>
+
+    <div class="result-breakdown">
+      <h4>スコア内訳</h4>
+      <div class="breakdown-row">
+        <span class="breakdown-label">証拠の薄さ</span>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" id="bar-evidence" style="width:0%"></div></div>
+        <span class="breakdown-val" id="val-evidence">-</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="breakdown-label">過去の未経験率</span>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" id="bar-history" style="width:0%"></div></div>
+        <span class="breakdown-val" id="val-history">-</span>
+      </div>
+      <div class="breakdown-row">
+        <span class="breakdown-label">可能性の低さ</span>
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" id="bar-plausibility" style="width:0%"></div></div>
+        <span class="breakdown-val" id="val-plausibility">-</span>
+      </div>
+    </div>
+
+    <div class="advice-box">
+      <p id="advice-text"></p>
+    </div>
+
+    <button class="btn-retry" onclick="resetTool()">もう一度試す</button>
+  </div>
+</main>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <div class="footer-copy">© Copyright Infomation.</div>
+</footer>
+
+<script>
+  const state = { plausibility: null, evidence: null, history: null };
+
+  /* ===== STEP NAVIGATION ===== */
+  function goStep(n) {
+    // Validate step 1
+    if (n === 2 && document.getElementById('anxiety-text').value.trim() === '') return;
+
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+    document.getElementById('step' + n).classList.add('active');
+    document.getElementById('result-card').classList.remove('active');
+
+    const labels = ['', 'ステップ 1 / 4', 'ステップ 2 / 4', 'ステップ 3 / 4', 'ステップ 4 / 4'];
+    const widths  = ['', '25%', '50%', '75%', '100%'];
+    document.getElementById('step-label').textContent = labels[n];
+    document.getElementById('progress-bar').style.width = widths[n];
+  }
+
+  /* ===== OPTION SELECTION ===== */
+  function selectOption(key, value, btn) {
+    state[key] = value;
+    const group = btn.closest('.options-grid');
+    group.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+
+    const nextMap = { plausibility: 'next2', evidence: 'next3', history: 'next4' };
+    document.getElementById(nextMap[key]).disabled = false;
+  }
+
+  /* ===== SCORE CALCULATION ===== */
+  function calcScore() {
+    const p = parseInt(state.plausibility); // 1-5 (高いほど現実的)
+    const e = parseInt(state.evidence);     // 0-3 (高いほど証拠あり)
+    const h = parseInt(state.history);     // 0-3 (高いほど過去に起きた)
+
+    // 証拠の薄さスコア (0-40)
+    const evidenceScore = [40, 28, 10, 0][e];
+
+    // 過去の未経験スコア (0-35)
+    const historyScore = [35, 20, 8, 0][h];
+
+    // 可能性の低さスコア (0-30)
+    const plausibilityScore = [30, 22, 12, 4, 0][p - 1];
+
+    const total = Math.min(99, Math.max(5, evidenceScore + historyScore + plausibilityScore));
+
+    return { total, evidenceScore, historyScore, plausibilityScore };
+  }
+
+  /* ===== SHOW RESULT ===== */
+  function showResult() {
+    document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+    document.getElementById('result-card').classList.add('active');
+    document.getElementById('step-label').textContent = '結果';
+    document.getElementById('progress-bar').style.width = '100%';
+
+    const { total, evidenceScore, historyScore, plausibilityScore } = calcScore();
+
+    // Animate score number
+    let current = 0;
+    const duration = 1200;
+    const start = performance.now();
+    function animateNum(ts) {
+      const p = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - p, 3);
+      current = Math.round(eased * total);
+      document.getElementById('score-display').textContent = current + '%';
+      if (p < 1) requestAnimationFrame(animateNum);
+    }
+    requestAnimationFrame(animateNum);
+
+    // Animate circle
+    const circumference = 477.52;
+    const offset = circumference * (1 - total / 100);
+    setTimeout(() => {
+      document.getElementById('score-circle').style.strokeDashoffset = offset;
+      // Color by score
+      const color = total >= 75 ? '#6d28d9' : total >= 50 ? '#f59e0b' : total >= 30 ? '#10b981' : '#3b82f6';
+      document.getElementById('score-circle').style.stroke = color;
+    }, 100);
+
+    // Result label & description
+    let label, desc, advice;
+    if (total >= 75) {
+      label = '😮‍💨 かなり過剰な不安です';
+      desc = 'あなたの心配は、現実の根拠よりも想像や恐れによって膨らんでいる可能性が高いです。\nその不安が実際に起きた試しはありますか？';
+      advice = '「最悪の場合を想定する」思考パターン（破滅的思考）に陥っている可能性があります。まず深呼吸して、「実際に今、何が起きているか」だけに集中してみましょう。今この瞬間は安全ですか？';
+    } else if (total >= 50) {
+      label = '🤔 やや過剰な不安かも';
+      desc = 'ある程度の根拠はありますが、心配の大きさが実際のリスクを超えているかもしれません。不安が膨らみやすい状態にあります。';
+      advice = '少し立ち止まって「最悪のケースが起きなかった場合」も想像してみましょう。問題が起きたとしても、あなたには対処する力がありますか？きっとあります。';
+    } else if (total >= 30) {
+      label = '🟡 ある程度根拠のある心配';
+      desc = '完全に杞憂とは言い切れません。ただし、いま行動できることに集中するのが建設的です。';
+      advice = 'この心配に対して「今すぐできること」を1つ書き出してみましょう。行動することで不安は和らぎます。';
+    } else {
+      label = '⚠️ 注意が必要な状況';
+      desc = '根拠のある心配のようです。一人で抱え込まず、信頼できる人や専門家に相談することも考えてみてください。';
+      advice = '一人で解決しようとせず、誰かに話すことで気持ちが整理されることがあります。あなたの不安を否定する必要はありません。';
+    }
+
+    document.getElementById('result-label').textContent = label;
+    document.getElementById('result-desc').textContent = desc;
+    document.getElementById('advice-text').textContent = advice;
+
+    // Breakdown bars
+    setTimeout(() => {
+      setBar('evidence',     evidenceScore,     40);
+      setBar('history',      historyScore,      35);
+      setBar('plausibility', plausibilityScore, 30);
+    }, 300);
+  }
+
+  function setBar(key, val, max) {
+    const pct = Math.round((val / max) * 100);
+    document.getElementById('bar-' + key).style.width = pct + '%';
+    document.getElementById('val-' + key).textContent = pct + '%';
+  }
+
+  /* ===== RESET ===== */
+  function resetTool() {
+    state.plausibility = null;
+    state.evidence = null;
+    state.history = null;
+    document.getElementById('anxiety-text').value = '';
+    document.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+    ['next2','next3','next4'].forEach(id => document.getElementById(id).disabled = true);
+    document.getElementById('score-circle').style.strokeDashoffset = '477.52';
+    document.getElementById('score-display').textContent = '0%';
+    goStep(1);
+  }
+
+  /* ===== TEXT AREA VALIDATION ===== */
+  document.getElementById('anxiety-text').addEventListener('input', function() {
+    document.getElementById('next1').disabled = this.value.trim() === '';
+  });
+  document.getElementById('next1').disabled = true;
+</script>
+
+</body>
+</html>

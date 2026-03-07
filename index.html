@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ツールNavi - あなたの「困った」を、1秒で解決。</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', 'Yu Gothic', sans-serif;
+      color: #1a1a1a;
+      background: #fff;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ===== HEADER ===== */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 68px;
+      background: #fff;
+      border-bottom: 1px solid #e8e8e8;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 20px;
+      font-weight: 800;
+      color: #1a1a1a;
+      letter-spacing: -0.3px;
+    }
+    nav {
+      display: flex;
+      gap: 36px;
+    }
+    nav a {
+      font-size: 15px;
+      color: #333;
+      font-weight: 500;
+    }
+    nav a:hover { color: #2563eb; }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .search-icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #555;
+      display: flex;
+      align-items: center;
+      padding: 4px;
+    }
+    .btn-login {
+      padding: 8px 18px;
+      border: 1.5px solid #1a1a1a;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      background: transparent;
+      color: #1a1a1a;
+      white-space: nowrap;
+    }
+    .btn-login .blue { color: #2563eb; font-weight: 700; }
+    .btn-login:hover { background: #f5f5f5; }
+
+    /* ===== HERO ===== */
+    .hero {
+      background: linear-gradient(160deg, #eef2f7 0%, #e8edf5 100%);
+      text-align: center;
+      padding: 80px 20px 88px;
+    }
+    .hero h1 {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 16px;
+      color: #111;
+    }
+    .hero p {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 40px;
+      line-height: 1.6;
+    }
+    .search-bar {
+      display: flex;
+      max-width: 580px;
+      margin: 0 auto;
+      border: 1.5px solid #d0d5dd;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .search-bar input {
+      flex: 1;
+      padding: 15px 20px;
+      font-size: 15px;
+      border: none;
+      outline: none;
+      color: #333;
+      background: transparent;
+    }
+    .search-bar input::placeholder { color: #aaa; }
+    .search-bar button {
+      padding: 15px 30px;
+      background: #2563eb;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .search-bar button:hover { background: #1d4ed8; }
+
+    /* ===== CATEGORIES ===== */
+    .categories {
+      padding: 64px 48px 80px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 22px;
+    }
+    .category-card {
+      background: #fff;
+      border: 1.5px solid #e4e7ec;
+      border-radius: 14px;
+      padding: 36px 20px 28px;
+      text-align: center;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+    }
+    .category-card:hover {
+      box-shadow: 0 6px 24px rgba(0,0,0,0.09);
+      transform: translateY(-3px);
+      border-color: #c8cdd5;
+    }
+    .category-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 18px;
+    }
+    .category-card h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: #111;
+    }
+    .category-card p {
+      font-size: 13px;
+      color: #777;
+      line-height: 1.75;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: #1a1a1a;
+      padding: 28px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 17px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .footer-nav {
+      display: flex;
+      gap: 28px;
+    }
+    .footer-nav a {
+      font-size: 14px;
+      color: #aaa;
+      transition: color 0.15s;
+    }
+    .footer-nav a:hover { color: #fff; }
+    .footer-copy {
+      font-size: 13px;
+      color: #666;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 900px) {
+      .category-grid { grid-template-columns: repeat(2, 1fr); }
+      header { padding: 0 24px; }
+      nav { gap: 20px; }
+    }
+    @media (max-width: 600px) {
+      .category-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+      .hero h1 { font-size: 28px; }
+      header { padding: 0 16px; }
+      nav { display: none; }
+      footer { flex-direction: column; gap: 16px; text-align: center; }
+      .footer-nav { flex-wrap: wrap; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header>
+  <div class="logo">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#444" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <nav>
+    <a href="#">ホーム</a>
+    <a href="#">新着ツール</a>
+    <a href="#">ランキング</a>
+    <a href="#">お知らせ</a>
+  </nav>
+  <div class="header-right">
+    <button class="search-icon-btn" aria-label="検索">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+      </svg>
+    </button>
+    <button class="btn-login">ログイン / <span class="blue">新規登録</span></button>
+  </div>
+</header>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+  <h1>あなたの「困った」を、1秒で解決。</h1>
+  <p>身の回りのあらゆる作業を効率化する、厳選された便利ツール集。</p>
+  <div class="search-bar">
+    <input type="text" placeholder="例：画像圧縮、PDF結合、パスワード生成">
+    <button>検索</button>
+  </div>
+</section>
+
+<!-- ===== CATEGORIES ===== -->
+<section class="categories">
+  <div class="category-grid">
+
+    <!-- 画像・動画編集 -->
+    <div class="category-card">
+      <div class="category-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="18" width="52" height="36" rx="6" fill="#9b59b6" opacity="0.12" stroke="#9b59b6" stroke-width="2.5"/>
+          <rect x="20" y="11" width="24" height="9" rx="4" fill="#9b59b6" opacity="0.25" stroke="#9b59b6" stroke-width="2"/>
+          <circle cx="32" cy="36" r="11" fill="#9b59b6" opacity="0.15" stroke="#9b59b6" stroke-width="2.5"/>
+          <circle cx="32" cy="36" r="6" fill="#9b59b6" opacity="0.7"/>
+          <circle cx="47" cy="25" r="3" fill="#9b59b6" opacity="0.5"/>
+        </svg>
+      </div>
+      <h3>画像・動画編集</h3>
+      <p>画像圧縮 / リサイズ / 背景透過</p>
+    </div>
+
+    <!-- 文書・PDF -->
+    <div class="category-card">
+      <div class="category-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="12" y="6" width="40" height="52" rx="5" fill="#f39c12" opacity="0.12" stroke="#f39c12" stroke-width="2.5"/>
+          <path d="M20 26 H44" stroke="#f39c12" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M20 34 H44" stroke="#f39c12" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M20 42 H34" stroke="#f39c12" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M36 6 L52 20 L36 20 Z" fill="#f39c12" opacity="0.3"/>
+          <path d="M36 6 V20 H52" stroke="#f39c12" stroke-width="2.5" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3>文書・PDF</h3>
+      <p>PDF結合/分割 / Word変換 /<br>文字数カウント</p>
+    </div>
+
+    <!-- ビジネス・仕事術 -->
+    <div class="category-card" onclick="location.href='tools/fixed-cost-sim.html'" style="cursor:pointer;">
+      <div class="category-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="10" y="20" width="44" height="34" rx="5" fill="#3498db" opacity="0.1" stroke="#3498db" stroke-width="2.5"/>
+          <rect x="22" y="12" width="20" height="10" rx="3" fill="#3498db" opacity="0.2" stroke="#3498db" stroke-width="2"/>
+          <path d="M10 32 H54" stroke="#3498db" stroke-width="2" stroke-dasharray="4 3"/>
+          <circle cx="24" cy="42" r="3" fill="#3498db" opacity="0.5"/>
+          <circle cx="32" cy="42" r="3" fill="#3498db" opacity="0.5"/>
+          <circle cx="40" cy="42" r="3" fill="#3498db" opacity="0.5"/>
+        </svg>
+      </div>
+      <h3>ビジネス・仕事術</h3>
+      <p>固定費削減シミュ / 家計圧迫指数 /<br>先延ばし診断</p>
+    </div>
+
+    <!-- Web開発・デザイン -->
+    <div class="category-card">
+      <div class="category-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="6" y="10" width="52" height="40" rx="6" fill="#2980b9" opacity="0.1" stroke="#2980b9" stroke-width="2.5"/>
+          <rect x="6" y="10" width="52" height="11" rx="6" fill="#2980b9" opacity="0.2"/>
+          <circle cx="15" cy="15.5" r="2" fill="#fff" opacity="0.8"/>
+          <circle cx="22" cy="15.5" r="2" fill="#fff" opacity="0.8"/>
+          <circle cx="29" cy="15.5" r="2" fill="#fff" opacity="0.8"/>
+          <path d="M22 32 L15 38 L22 44" stroke="#2980b9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M42 32 L49 38 L42 44" stroke="#2980b9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M35 28 L29 48" stroke="#2980b9" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h3>Web開発・デザイン</h3>
+      <p>カラーコード変換 / ダミー<br>テキスト / HTML整形</p>
+    </div>
+
+    <!-- セキュリティ・計算 -->
+    <div class="category-card">
+      <div class="category-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="14" y="28" width="36" height="28" rx="5" fill="#27ae60" opacity="0.12" stroke="#27ae60" stroke-width="2.5"/>
+          <path d="M22 28 V21 C22 14 42 14 42 21 V28" stroke="#27ae60" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          <circle cx="32" cy="41" r="5" fill="#27ae60" opacity="0.35" stroke="#27ae60" stroke-width="2"/>
+          <line x1="32" y1="44" x2="32" y2="49" stroke="#27ae60" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h3>セキュリティ・計算</h3>
+      <p>パスワード生成 / ハッシュ値計算<br>/ ローン計算</p>
+    </div>
+
+    <!-- エンタメ・生活 -->
+    <div class="category-card" onclick="location.href='tools/daily-condition.html'" style="cursor:pointer;">
+      <div class="category-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M28 20 C28 20 14 10 8 20 C2 30 16 44 28 52 C40 44 54 30 48 20 C42 10 28 20 28 20Z" fill="#e74c3c" opacity="0.75"/>
+          <rect x="28" y="28" width="28" height="24" rx="4" fill="#fff" opacity="0.95" stroke="#e74c3c" stroke-width="1.5"/>
+          <line x1="28" y1="35" x2="56" y2="35" stroke="#e74c3c" stroke-width="1.5"/>
+          <line x1="35" y1="26" x2="35" y2="30" stroke="#e74c3c" stroke-width="2" stroke-linecap="round"/>
+          <line x1="49" y1="26" x2="49" y2="30" stroke="#e74c3c" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="36" cy="41" r="1.8" fill="#e74c3c"/>
+          <circle cx="42" cy="41" r="1.8" fill="#e74c3c"/>
+          <circle cx="48" cy="41" r="1.8" fill="#e74c3c"/>
+          <circle cx="36" cy="47" r="1.8" fill="#e74c3c"/>
+          <circle cx="42" cy="47" r="1.8" fill="#e74c3c"/>
+        </svg>
+      </div>
+      <h3>エンタメ・生活</h3>
+      <p>コンディション指数 / 人生疲労度 /<br>睡眠負債スコア</p>
+    </div>
+
+    <!-- AIツール -->
+    <div class="category-card">
+      <div class="category-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32 8 L34.5 20 L46 22 L34.5 24 L32 36 L29.5 24 L18 22 L29.5 20 Z" fill="#f1c40f"/>
+          <path d="M50 6 L51.5 12 L58 13 L51.5 14 L50 20 L48.5 14 L42 13 L48.5 12 Z" fill="#f1c40f" opacity="0.65"/>
+          <path d="M14 36 L15.5 42 L22 43 L15.5 44 L14 50 L12.5 44 L6 43 L12.5 42 Z" fill="#f1c40f" opacity="0.65"/>
+          <path d="M48 40 L49 44 L53 45 L49 46 L48 50 L47 46 L43 45 L47 44 Z" fill="#f1c40f" opacity="0.45"/>
+        </svg>
+      </div>
+      <h3>AIツール</h3>
+      <p>文章自動生成 / AI画像生成 /<br>翻訳</p>
+    </div>
+
+    <!-- 生活・便利 -->
+    <div class="category-card">
+      <div class="category-icon">
+        <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="22" fill="#5b6af0" opacity="0.1" stroke="#5b6af0" stroke-width="2.5"/>
+          <line x1="32" y1="8" x2="32" y2="13" stroke="#5b6af0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="32" y1="51" x2="32" y2="56" stroke="#5b6af0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="8" y1="32" x2="13" y2="32" stroke="#5b6af0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="51" y1="32" x2="56" y2="32" stroke="#5b6af0" stroke-width="2" stroke-linecap="round"/>
+          <line x1="32" y1="32" x2="32" y2="16" stroke="#5b6af0" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="32" y1="32" x2="44" y2="38" stroke="#5b6af0" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="32" cy="32" r="3" fill="#5b6af0"/>
+        </svg>
+      </div>
+      <h3>生活・便利</h3>
+      <p>記念日計算 / タイマー /<br>気温変換</p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="footer-logo">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <nav class="footer-nav">
+    <a href="#">ホーム</a>
+    <a href="#">新着ツール</a>
+    <a href="#">ランキング</a>
+    <a href="#">お知らせ</a>
+  </nav>
+  <div class="footer-copy">© Copyright Infomation.</div>
+</footer>
+
+</body>
+</html>

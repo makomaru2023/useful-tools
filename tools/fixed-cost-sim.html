@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>固定費削減シミュレーター | ツールNavi</title>
+  <meta name="description" content="固定費を入力するだけで月・年間の削減可能額と、取り戻せる人生時間を可視化します。削減優先順位と最初の一手を自動提示。">
+  <style>
+    :root {
+      --bg: #0b0c10; --card: rgba(18,20,26,0.92); --text: #e9eef6; --muted: #8a93a8;
+      --line: #222734; --accent: #6aa7ff; --ok: #5ee39a; --warn: #ffd166;
+      --orange: #ff9747; --bad: #ff6b6b; --violet: #caa7ff; --radius: 18px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', Roboto, sans-serif;
+      background: linear-gradient(180deg, #07080c 0%, #0b0c10 100%);
+      color: var(--text); min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* HEADER */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 40px; height: 60px;
+      background: rgba(12,13,18,0.95); border-bottom: 1px solid var(--line);
+      position: sticky; top: 0; z-index: 100; backdrop-filter: blur(12px);
+    }
+    .logo { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 800; }
+    .back-link { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 6px; transition: color 0.15s; }
+    .back-link:hover { color: var(--accent); }
+
+    /* LAYOUT */
+    main { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    /* HERO */
+    .hero { margin-bottom: 32px; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px rgba(106,167,255,0.5); }
+    h1 { font-size: 28px; font-weight: 800; line-height: 1.25; margin-bottom: 10px; }
+    .hero p { font-size: 14px; color: var(--muted); line-height: 1.75; }
+
+    /* CARD */
+    .card {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--radius); padding: 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3); margin-bottom: 14px;
+    }
+    .card-title { font-size: 11px; font-weight: 700; color: var(--muted); letter-spacing: 0.7px; text-transform: uppercase; margin-bottom: 18px; }
+
+    /* MODE TABS */
+    .mode-tabs { display: flex; background: rgba(255,255,255,0.04); border: 1px solid var(--line); border-radius: 12px; padding: 4px; margin-bottom: 20px; }
+    .mode-tab {
+      flex: 1; padding: 9px; border-radius: 9px; border: none;
+      background: transparent; color: var(--muted);
+      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+      transition: background 0.2s, color 0.2s;
+    }
+    .mode-tab.active { background: rgba(106,167,255,0.15); color: var(--accent); border: 1px solid rgba(106,167,255,0.3); }
+    .mode-desc { font-size: 11px; color: var(--muted); text-align: center; margin-top: -12px; margin-bottom: 16px; }
+
+    /* INPUT GRID */
+    .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 8px; }
+    .input-item { display: grid; gap: 7px; }
+    .input-label {
+      font-size: 12px; color: var(--muted); font-weight: 600;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .input-label-icon { font-size: 14px; }
+    .input-wrap {
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--line);
+      border-radius: 11px; overflow: hidden; transition: border-color 0.2s;
+    }
+    .input-wrap:focus-within { border-color: rgba(106,167,255,0.5); }
+    .input-wrap input {
+      flex: 1; padding: 11px 12px; background: transparent; border: none;
+      outline: none; color: var(--text); font-size: 15px; font-family: inherit; min-width: 0;
+    }
+    .input-unit { padding: 0 12px 0 4px; font-size: 11px; color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+    .input-hint { font-size: 10px; color: var(--muted); }
+    .diff-badge {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      padding: 2px 7px; border-radius: 99px; margin-left: 6px;
+    }
+    .diff-1 { background: rgba(94,227,154,0.15);  color: var(--ok); }
+    .diff-2 { background: rgba(106,167,255,0.15); color: var(--accent); }
+    .diff-3 { background: rgba(255,209,102,0.15); color: var(--warn); }
+    .diff-4 { background: rgba(255,151,71,0.15);  color: var(--orange); }
+    .diff-5 { background: rgba(255,107,107,0.15); color: var(--bad); }
+
+    /* PREVIEW (inline reduction hint per field) */
+    .reduction-preview { font-size: 10px; color: var(--ok); min-height: 14px; transition: opacity 0.2s; }
+
+    /* OPTIONAL */
+    .divider { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+    .opt-toggle { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--muted); font-size: 13px; user-select: none; transition: color 0.15s; }
+    .opt-toggle:hover { color: var(--accent); }
+    .tog-arrow { font-size: 10px; transition: transform 0.2s; }
+    .opt-toggle.open .tog-arrow { transform: rotate(90deg); }
+    .opt-body { display: none; margin-top: 16px; }
+    .opt-body.visible { display: block; }
+
+    /* BUTTONS */
+    .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .btn {
+      padding: 12px 22px; border-radius: 12px; border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04); color: var(--text);
+      font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: filter 0.15s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn.primary { background: linear-gradient(90deg, rgba(106,167,255,0.88), rgba(202,167,255,0.85)); border-color: transparent; color: #0b0c10; }
+    .btn.outline  { border-color: rgba(106,167,255,0.35); color: var(--accent); }
+    .footnote { font-size: 12px; color: var(--muted); line-height: 1.7; margin-top: 14px; }
+
+    /* RESULT */
+    #result-card { display: none; }
+
+    /* Big number pair */
+    .savings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+    .savings-block {
+      background: rgba(255,255,255,0.025); border: 1px solid var(--line);
+      border-radius: 14px; padding: 18px; text-align: center;
+    }
+    .savings-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 10px; }
+    .savings-amount { font-size: 28px; font-weight: 800; color: var(--ok); line-height: 1; }
+    .savings-unit   { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+    /* Impact index */
+    .impact-row { margin-bottom: 18px; }
+    .impact-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+    .impact-title { font-size: 12px; color: var(--muted); font-weight: 700; }
+    .impact-pct   { font-size: 22px; font-weight: 800; color: var(--accent); }
+    .impact-track { height: 10px; background: rgba(255,255,255,0.05); border-radius: 99px; border: 1px solid var(--line); overflow: hidden; margin-bottom: 6px; }
+    .impact-fill  { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), var(--violet)); transition: width 0.8s ease; width: 0%; }
+    .impact-note  { font-size: 11px; color: var(--muted); }
+
+    /* Time conversion */
+    .time-card {
+      display: flex; align-items: center; gap: 16px;
+      padding: 16px 18px; border-radius: 14px;
+      border: 1px solid rgba(94,227,154,0.25);
+      background: rgba(94,227,154,0.06); margin-bottom: 18px;
+    }
+    .time-icon  { font-size: 28px; flex-shrink: 0; }
+    .time-hours { font-size: 22px; font-weight: 800; color: var(--ok); }
+    .time-sub   { font-size: 12px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+
+    /* Priority list */
+    .prio-title { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 12px; }
+    .prio-list  { display: grid; gap: 10px; margin-bottom: 18px; }
+    .prio-item  {
+      padding: 14px 16px; border: 1px solid var(--line);
+      border-radius: 13px; background: rgba(255,255,255,0.02);
+    }
+    .prio-head  { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .prio-rank  {
+      font-size: 11px; font-weight: 800; color: var(--accent);
+      background: rgba(106,167,255,0.12); border-radius: 99px;
+      width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .prio-icon  { font-size: 16px; }
+    .prio-name  { font-size: 14px; font-weight: 700; flex: 1; }
+    .prio-body  { display: grid; gap: 6px; }
+    .prio-amount-row { display: flex; justify-content: space-between; align-items: center; }
+    .prio-amount { font-size: 16px; font-weight: 800; color: var(--ok); }
+    .prio-rate   { font-size: 12px; color: var(--muted); }
+    .mini-bar-wrap { height: 6px; background: rgba(255,255,255,0.05); border-radius: 99px; overflow: hidden; border: 1px solid var(--line); }
+    .mini-bar-fill { height: 100%; border-radius: 99px; transition: width 0.8s ease; width: 0%; }
+    .prio-action { font-size: 12px; color: var(--muted); line-height: 1.5; margin-top: 4px; border-top: 1px solid var(--line); padding-top: 8px; }
+
+    /* Today's action */
+    .action-block {
+      padding: 16px; border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.02); margin-bottom: 18px;
+    }
+    .action-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+    .action-main  { font-size: 14px; line-height: 1.65; }
+    .action-meta  { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+    /* Tagline */
+    .tagline {
+      text-align: center; font-size: 13px; font-style: italic;
+      color: var(--muted); margin-bottom: 18px;
+      padding: 12px; border-top: 1px solid var(--line);
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(18,20,26,0.96); border: 1px solid var(--line); border-radius: 12px;
+      padding: 10px 18px; font-size: 13px; color: var(--text);
+      display: none; z-index: 999; box-shadow: 0 4px 20px rgba(0,0,0,0.4); white-space: nowrap;
+    }
+
+    /* FOOTER */
+    footer { background: #111319; border-top: 1px solid var(--line); padding: 24px 40px; display: flex; align-items: center; justify-content: space-between; }
+    .footer-logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
+    .footer-copy { font-size: 12px; color: #444; }
+
+    @media (max-width: 600px) {
+      header { padding: 0 16px; }
+      main { padding: 28px 14px 60px; }
+      .card { padding: 18px 16px; }
+      h1 { font-size: 22px; }
+      .input-grid { grid-template-columns: 1fr; }
+      .savings-row { grid-template-columns: 1fr 1fr; }
+      .savings-amount { font-size: 22px; }
+      footer { flex-direction: column; gap: 10px; padding: 20px 16px; }
+    }
+    @media (max-width: 360px) {
+      .savings-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6aa7ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <a href="../index.html" class="back-link">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    トップへ戻る
+  </a>
+</header>
+
+<main>
+
+  <div class="hero">
+    <div class="badge"><span class="dot"></span>API不要 &nbsp;/&nbsp; ブラウザ完結 &nbsp;/&nbsp; 時間換算あり</div>
+    <h1>固定費削減シミュレーター</h1>
+    <p>節約額ではなく、"取り戻せる人生時間"を可視化する。<br>
+       固定費を入力するだけで削減可能額・優先順位・最初の一手が分かります。</p>
+  </div>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <div class="card-title">固定費を入力（空欄OK・未入力は0）</div>
+
+    <!-- Mode tabs -->
+    <div class="mode-tabs">
+      <button class="mode-tab" id="mConservative">保守的</button>
+      <button class="mode-tab active" id="mStandard">標準</button>
+      <button class="mode-tab" id="mAggressive">攻め</button>
+    </div>
+    <p class="mode-desc" id="modeDesc">現実的な中央値で削減額を試算します</p>
+
+    <!-- 6 category inputs -->
+    <div class="input-grid" id="inputGrid"></div>
+
+    <hr class="divider">
+    <div class="opt-toggle" id="optToggle">
+      <span class="tog-arrow">▶</span>
+      任意：時給を入力して「取り戻せる人生時間」を換算する
+    </div>
+    <div class="opt-body" id="optBody">
+      <div class="input-item" style="max-width:260px; margin-top:16px;">
+        <label class="input-label">⏱ 想定時給</label>
+        <div class="input-wrap">
+          <input type="number" id="hourlyWage" min="0" step="100" placeholder="例：2000">
+          <span class="input-unit">円 / 時</span>
+        </div>
+        <div class="input-hint">※ 削減額を労働時間に換算して表示します</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btnCalc">削減額を試算する</button>
+      <button class="btn" id="btnReset">リセット</button>
+    </div>
+    <p class="footnote">※ 入力データはブラウザ内のみで処理されます（サーバー送信なし）。</p>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div class="card" id="result-card">
+    <div class="card-title">削減シミュレーション結果</div>
+
+    <!-- Savings numbers -->
+    <div class="savings-row">
+      <div class="savings-block">
+        <div class="savings-label">月間削減可能額</div>
+        <div class="savings-amount" id="monthlyAmt">—</div>
+        <div class="savings-unit">円 / 月</div>
+      </div>
+      <div class="savings-block">
+        <div class="savings-label">年間削減可能額</div>
+        <div class="savings-amount" id="annualAmt">—</div>
+        <div class="savings-unit">円 / 年</div>
+      </div>
+    </div>
+
+    <!-- Impact index -->
+    <div class="impact-row">
+      <div class="impact-header">
+        <div class="impact-title">削減インパクト指数（固定費全体に対する削減余地）</div>
+        <div class="impact-pct" id="impactPct">—</div>
+      </div>
+      <div class="impact-track"><div class="impact-fill" id="impactFill"></div></div>
+      <div class="impact-note" id="impactNote"></div>
+    </div>
+
+    <!-- Time conversion (shown only if hourly wage provided) -->
+    <div class="time-card" id="timeCard" style="display:none;">
+      <div class="time-icon">⏳</div>
+      <div>
+        <div class="time-hours" id="timeHours">— 時間 / 年</div>
+        <div class="time-sub" id="timeSub"></div>
+      </div>
+    </div>
+
+    <!-- Priority Top 3 -->
+    <div class="prio-title">削減優先順位（削減額の大きい順）</div>
+    <div class="prio-list" id="prioList"></div>
+
+    <!-- Today's action -->
+    <div class="action-block">
+      <div class="action-label">今日の一手（難易度×インパクトで自動選定）</div>
+      <div class="action-main" id="actionMain">—</div>
+      <div class="action-meta" id="actionMeta"></div>
+    </div>
+
+    <p class="tagline">「固定費は"意思"ではなく"設計"で減らせる。」</p>
+
+    <div class="actions">
+      <button class="btn primary" id="btnShare">結果をシェア</button>
+      <button class="btn outline" id="btnCopy">テキストコピー</button>
+    </div>
+    <p class="footnote">
+      ※ 削減額は現実的な中央値モデルに基づく試算です。実際の契約内容・条件により異なります。<br>
+      ※ 住宅ローン借換の詳細は各金融機関にご確認ください。
+    </p>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-logo">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <div class="footer-copy">© Copyright Information.</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================
+   CATEGORY DATA
+=========================== */
+const CATS = [
+  {
+    id: 'comm', name: '通信費', icon: '📱', placeholder: '例：1.5',
+    hint: 'スマホ＋ネット回線',
+    diff: '簡単', diffScore: 2,
+    rates: { conservative: 0.10, standard: 0.20, aggressive: 0.30 },
+    action: 'スマホを格安SIMに乗り換える。プラン確認だけなら今日5分でできます。',
+  },
+  {
+    id: 'insurance', name: '保険料', icon: '🛡', placeholder: '例：2',
+    hint: '生命保険・医療保険など',
+    diff: '普通', diffScore: 3,
+    rates: { conservative: 0.08, standard: 0.15, aggressive: 0.25 },
+    action: '保険証券を1枚取り出し、特約の内容を確認する。不要な特約を1つ外す。',
+  },
+  {
+    id: 'sub', name: 'サブスク', icon: '📺', placeholder: '例：0.5',
+    hint: '動画・音楽・アプリなど',
+    diff: '非常に簡単', diffScore: 1,
+    rates: { conservative: 0.30, standard: 0.50, aggressive: 0.70 },
+    action: '使っていないサブスクを3つ書き出し、今日1つ解約する。',
+  },
+  {
+    id: 'car', name: '車関連', icon: '🚗', placeholder: '例：3',
+    hint: 'ローン＋保険＋維持費',
+    diff: 'やや難', diffScore: 4,
+    rates: { conservative: 0.05, standard: 0.10, aggressive: 0.15 },
+    action: '車の任意保険を一括比較サイトで確認する（切り替えで年1〜3万削減可能なケースが多い）。',
+  },
+  {
+    id: 'housing', name: '住宅関連', icon: '🏠', placeholder: '例：8',
+    hint: '家賃 or ローン返済額',
+    diff: '難', diffScore: 5,
+    rates: { conservative: 0.02, standard: 0.05, aggressive: 0.10 },
+    action: '住宅ローンの金利を確認し、借換シミュレーターを使って試算する。',
+  },
+  {
+    id: 'other', name: 'その他固定費', icon: '📦', placeholder: '例：1',
+    hint: 'ジム・習い事など',
+    diff: '普通', diffScore: 3,
+    rates: { conservative: 0.05, standard: 0.10, aggressive: 0.15 },
+    action: '月1回未満しか使っていないサービスを棚卸しし、1つ停止する。',
+  },
+];
+
+const DIFF_CLASS = { '非常に簡単': 'diff-1', '簡単': 'diff-2', '普通': 'diff-3', 'やや難': 'diff-4', '難': 'diff-5' };
+
+const MODE_INFO = {
+  conservative: { key: 'conservative', label: '保守的', desc: '確実に実行可能な最小ラインで試算します' },
+  standard:     { key: 'standard',     label: '標準',   desc: '現実的な中央値で削減額を試算します' },
+  aggressive:   { key: 'aggressive',   label: '攻め',   desc: '積極的に取り組んだ場合の上限値で試算します' },
+};
+
+let currentMode = 'standard';
+
+/* ===========================
+   UTILS
+=========================== */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.style.display = 'none'; }, 2200);
+}
+function fmtYen(n) { return Math.round(n).toLocaleString('ja-JP'); }
+function getVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+/* ===========================
+   BUILD INPUT GRID
+=========================== */
+function buildInputGrid() {
+  const grid = document.getElementById('inputGrid');
+  grid.innerHTML = '';
+  CATS.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'input-item';
+    item.innerHTML = `
+      <label class="input-label">
+        <span class="input-label-icon">${c.icon}</span>
+        ${c.name}
+        <span class="diff-badge ${DIFF_CLASS[c.diff]}">${c.diff}</span>
+      </label>
+      <div class="input-wrap">
+        <input type="number" id="inp_${c.id}" min="0" step="0.1" placeholder="${c.placeholder}"
+               oninput="onInputChange('${c.id}')">
+        <span class="input-unit">万円 / 月</span>
+      </div>
+      <div class="input-hint">${c.hint}</div>
+      <div class="reduction-preview" id="prev_${c.id}"></div>
+    `;
+    grid.appendChild(item);
+  });
+}
+
+function onInputChange(catId) {
+  const cat = CATS.find(c => c.id === catId);
+  const val = getVal(`inp_${catId}`);
+  const prev = document.getElementById(`prev_${catId}`);
+  if (val > 0) {
+    const rate = cat.rates[currentMode];
+    const reducible = Math.round(val * 10000 * rate);
+    prev.textContent = `→ 月 ${fmtYen(reducible)} 円削減できる可能性`;
+    prev.style.opacity = '1';
+  } else {
+    prev.textContent = '';
+    prev.style.opacity = '0';
+  }
+}
+
+/* ===========================
+   MODE TABS
+=========================== */
+function setMode(mode) {
+  currentMode = mode;
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('m' + mode.charAt(0).toUpperCase() + mode.slice(1)).classList.add('active');
+  document.getElementById('modeDesc').textContent = MODE_INFO[mode].desc;
+  // Refresh previews
+  CATS.forEach(c => onInputChange(c.id));
+}
+document.getElementById('mConservative').addEventListener('click', () => setMode('conservative'));
+document.getElementById('mStandard').addEventListener('click',     () => setMode('standard'));
+document.getElementById('mAggressive').addEventListener('click',   () => setMode('aggressive'));
+
+/* ===========================
+   OPTIONAL TOGGLE
+=========================== */
+document.getElementById('optToggle').addEventListener('click', function () {
+  this.classList.toggle('open');
+  document.getElementById('optBody').classList.toggle('visible');
+});
+
+/* ===========================
+   CALC
+=========================== */
+function calcReductions() {
+  const results = CATS.map(c => {
+    const val      = getVal(`inp_${c.id}`);
+    const monthly  = val * 10000; // 万円 → 円
+    const rate     = c.rates[currentMode];
+    const reducible = monthly * rate;
+    return { ...c, monthly, rate, reducible };
+  });
+
+  const totalFixed    = results.reduce((s, r) => s + r.monthly, 0);
+  const totalReducible = results.reduce((s, r) => s + r.reducible, 0);
+  const annualReducible = totalReducible * 12;
+  const impactIndex   = totalFixed > 0 ? Math.min(100, Math.round(totalReducible / totalFixed * 100)) : 0;
+
+  const hourlyWage = parseFloat(document.getElementById('hourlyWage').value) || 0;
+  const freeHours  = hourlyWage > 0 ? annualReducible / hourlyWage : 0;
+
+  // Sort by reducible desc for priority
+  const sorted = [...results]
+    .filter(r => r.reducible > 0)
+    .sort((a, b) => b.reducible - a.reducible);
+
+  // Best "today's action": easiest among top-impact items
+  // Score = reducible / diffScore^0.8  (higher = better first action)
+  const actionTarget = sorted
+    .map(r => ({ ...r, actionScore: r.reducible / Math.pow(r.diffScore, 0.8) }))
+    .sort((a, b) => b.actionScore - a.actionScore)[0];
+
+  return { results, sorted, totalFixed, totalReducible, annualReducible, impactIndex, freeHours, hourlyWage, actionTarget };
+}
+
+/* ===========================
+   RENDER RESULT
+=========================== */
+function renderResult(d) {
+  // Big numbers
+  document.getElementById('monthlyAmt').textContent = fmtYen(d.totalReducible);
+  document.getElementById('annualAmt').textContent  = fmtYen(d.annualReducible);
+
+  // Impact index
+  document.getElementById('impactPct').textContent = d.impactIndex + '%';
+  setTimeout(() => { document.getElementById('impactFill').style.width = d.impactIndex + '%'; }, 60);
+  const impactNotes = [
+    [15, '削減余地は小さめです。現状はよく最適化されています。'],
+    [30, '一部の固定費に見直し余地があります。'],
+    [50, '固定費に見直し余地が多くあります。優先順位から着手しましょう。'],
+    [100, '大きな削減ポテンシャルがあります。今すぐ動く価値があります。'],
+  ];
+  document.getElementById('impactNote').textContent = impactNotes.find(([t]) => d.impactIndex <= t)?.[1] ?? '';
+
+  // Time conversion
+  const timeCard = document.getElementById('timeCard');
+  if (d.freeHours > 0) {
+    timeCard.style.display = 'flex';
+    const days = d.freeHours / 8;
+    document.getElementById('timeHours').textContent = `年間 ${Math.round(d.freeHours)} 時間の自由時間`;
+    document.getElementById('timeSub').textContent =
+      `≈ ${days.toFixed(1)} 日分の労働が不要に\n（時給 ${fmtYen(d.hourlyWage)} 円 × ${Math.round(d.freeHours)} 時間 = ${fmtYen(d.annualReducible)} 円）`;
+  } else {
+    timeCard.style.display = 'none';
+  }
+
+  // Priority Top 3
+  const prioList = document.getElementById('prioList');
+  prioList.innerHTML = '';
+  d.sorted.slice(0, 3).forEach((item, i) => {
+    const barPct = Math.round(item.rate * 100);
+    const li = document.createElement('div');
+    li.className = 'prio-item';
+    li.innerHTML = `
+      <div class="prio-head">
+        <div class="prio-rank">${i + 1}</div>
+        <div class="prio-icon">${item.icon}</div>
+        <div class="prio-name">${item.name}</div>
+        <span class="diff-badge ${DIFF_CLASS[item.diff]}">${item.diff}</span>
+      </div>
+      <div class="prio-body">
+        <div class="prio-amount-row">
+          <div class="prio-amount">月 ${fmtYen(item.reducible)} 円</div>
+          <div class="prio-rate">${barPct}% 削減可能（${MODE_INFO[currentMode].label}モード）</div>
+        </div>
+        <div class="mini-bar-wrap">
+          <div class="mini-bar-fill" style="width:0%;background:var(--ok)" data-pct="${barPct}"></div>
+        </div>
+        <div class="prio-action">💡 ${item.action}</div>
+      </div>`;
+    prioList.appendChild(li);
+  });
+  // Animate bars
+  setTimeout(() => {
+    prioList.querySelectorAll('.mini-bar-fill').forEach(b => { b.style.width = b.dataset.pct + '%'; });
+  }, 100);
+
+  // Today's action
+  if (d.actionTarget) {
+    document.getElementById('actionMain').textContent = d.actionTarget.action;
+    document.getElementById('actionMeta').textContent =
+      `${d.actionTarget.icon} ${d.actionTarget.name}（難易度：${d.actionTarget.diff}）— 月 ${fmtYen(d.actionTarget.reducible)} 円の削減が見込めます`;
+  }
+
+  // Show
+  const card = document.getElementById('result-card');
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Share
+  const shareText = buildShare(d);
+  document.getElementById('btnCopy').onclick = async () => {
+    try { await navigator.clipboard.writeText(shareText); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = shareText; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    toast('コピーしました ✓');
+  };
+  document.getElementById('btnShare').onclick = async () => {
+    try {
+      if (navigator.share) { await navigator.share({ text: shareText }); }
+      else { await navigator.clipboard.writeText(shareText); toast('シェア非対応のためコピーしました'); }
+    } catch { toast('キャンセルしました'); }
+  };
+}
+
+function buildShare(d) {
+  const url = location.href.split('#')[0];
+  const timeStr = d.freeHours > 0 ? `\n年間 ${Math.round(d.freeHours)} 時間の自由時間に換算できます。` : '';
+  return `固定費を見直したら\n月 ${fmtYen(d.totalReducible)} 円、年 ${fmtYen(d.annualReducible)} 円浮く可能性。${timeStr}\n固定費は"意思"ではなく"設計"で減らせる。\n${url}\n#固定費削減 #家計改善 #ツールNavi`;
+}
+
+/* ===========================
+   EVENTS
+=========================== */
+document.getElementById('btnCalc').addEventListener('click', () => {
+  const vals = CATS.map(c => getVal(`inp_${c.id}`));
+  if (vals.every(v => v === 0)) { toast('少なくとも1項目を入力してください'); return; }
+  renderResult(calcReductions());
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  CATS.forEach(c => {
+    document.getElementById(`inp_${c.id}`).value = '';
+    document.getElementById(`prev_${c.id}`).textContent = '';
+  });
+  document.getElementById('hourlyWage').value = '';
+  document.getElementById('result-card').style.display = 'none';
+  toast('リセットしました');
+});
+
+/* ===========================
+   INIT
+=========================== */
+buildInputGrid();
+</script>
+
+</body>
+</html>

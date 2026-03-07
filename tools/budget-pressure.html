@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>家計圧迫指数チェック | ツールNavi</title>
+  <meta name="description" content="家賃・固定費を入力するだけ。家計圧迫指数（0〜100）とゾーン判定で、今すぐ動くべき改善アクションをお知らせします。">
+  <style>
+    :root {
+      --bg: #0b0c10;
+      --card: rgba(18,20,26,0.92);
+      --text: #e9eef6;
+      --muted: #8a93a8;
+      --line: #222734;
+      --accent: #6aa7ff;
+      --ok: #5ee39a;
+      --warn: #ffd166;
+      --orange: #ff9747;
+      --bad: #ff6b6b;
+      --violet: #caa7ff;
+      --radius: 18px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Noto Sans JP', Roboto, sans-serif;
+      background: linear-gradient(180deg, #07080c 0%, #0b0c10 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    a { text-decoration: none; color: inherit; }
+
+    /* ===== HEADER ===== */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 40px;
+      height: 60px;
+      background: rgba(12,13,18,0.95);
+      border-bottom: 1px solid var(--line);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(12px);
+    }
+    .logo { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 800; }
+    .back-link {
+      font-size: 13px; color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+      transition: color 0.15s;
+    }
+    .back-link:hover { color: var(--accent); }
+
+    /* ===== LAYOUT ===== */
+    main { max-width: 760px; margin: 0 auto; padding: 40px 20px 80px; }
+
+    /* ===== HERO ===== */
+    .hero { margin-bottom: 32px; }
+    .badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted); margin-bottom: 14px;
+    }
+    .dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--accent); box-shadow: 0 0 14px rgba(106,167,255,0.5);
+    }
+    h1 { font-size: 28px; font-weight: 800; line-height: 1.25; margin-bottom: 10px; }
+    .hero p { font-size: 14px; color: var(--muted); line-height: 1.75; }
+
+    /* ===== CARD ===== */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+      margin-bottom: 14px;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      letter-spacing: 0.7px; text-transform: uppercase; margin-bottom: 20px;
+    }
+
+    /* ===== INCOME TABS ===== */
+    .income-tabs {
+      display: flex;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 18px;
+    }
+    .income-tab {
+      flex: 1; padding: 10px; border-radius: 9px; border: none;
+      background: transparent; color: var(--muted);
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: background 0.2s, color 0.2s;
+    }
+    .income-tab.active {
+      background: rgba(106,167,255,0.15);
+      color: var(--accent);
+      border: 1px solid rgba(106,167,255,0.3);
+    }
+
+    /* ===== FORM ===== */
+    .form-group { display: grid; gap: 8px; margin-bottom: 14px; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .field-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .field-hint { font-size: 11px; color: var(--muted); line-height: 1.5; }
+    .input-wrap {
+      display: flex; align-items: center;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line); border-radius: 12px;
+      overflow: hidden; transition: border-color 0.2s;
+    }
+    .input-wrap:focus-within { border-color: rgba(106,167,255,0.5); }
+    .input-wrap input {
+      flex: 1; padding: 12px 14px;
+      background: transparent; border: none; outline: none;
+      color: var(--text); font-size: 15px; font-family: inherit;
+      min-width: 0;
+    }
+    .input-unit {
+      padding: 0 14px 0 6px; font-size: 12px; color: var(--muted);
+      white-space: nowrap; flex-shrink: 0;
+    }
+    select {
+      width: 100%; padding: 12px 14px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line); border-radius: 12px;
+      color: var(--text); font-size: 14px;
+      font-family: inherit; outline: none; -webkit-appearance: none;
+      transition: border-color 0.2s;
+    }
+    select:focus { border-color: rgba(106,167,255,0.5); }
+    select option { background: #12141a; }
+    .hidden { display: none !important; }
+    .field-tag {
+      display: inline-block; font-size: 10px; font-weight: 600;
+      padding: 2px 7px; border-radius: 99px;
+      border: 1px solid var(--line); color: var(--muted);
+      margin-left: 6px; vertical-align: middle;
+    }
+    .divider { border: none; border-top: 1px solid var(--line); margin: 18px 0; }
+    .optional-toggle {
+      display: flex; align-items: center; gap: 8px;
+      cursor: pointer; color: var(--muted); font-size: 13px;
+      user-select: none; transition: color 0.15s;
+    }
+    .optional-toggle:hover { color: var(--accent); }
+    .tog-arrow { font-size: 10px; transition: transform 0.2s; display: inline-block; }
+    .optional-toggle.open .tog-arrow { transform: rotate(90deg); }
+    .optional-body { display: none; margin-top: 16px; }
+    .optional-body.visible { display: block; }
+    .actions { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+    .btn {
+      padding: 12px 22px; border-radius: 12px;
+      border: 1px solid var(--line); background: rgba(255,255,255,0.04);
+      color: var(--text); font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: inherit; transition: filter 0.15s;
+    }
+    .btn:hover { filter: brightness(1.1); }
+    .btn.primary {
+      background: linear-gradient(90deg, rgba(106,167,255,0.88), rgba(202,167,255,0.85));
+      border-color: transparent; color: #0b0c10;
+    }
+    .btn.outline { border-color: rgba(106,167,255,0.35); color: var(--accent); }
+    .footnote { font-size: 12px; color: var(--muted); line-height: 1.7; margin-top: 14px; }
+
+    /* ===== RESULT ===== */
+    #result-card { display: none; }
+    .score-hero {
+      display: flex; align-items: center; gap: 18px;
+      margin-bottom: 10px; flex-wrap: wrap;
+    }
+    .big-num {
+      font-size: 64px; font-weight: 800; line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .score-meta {}
+    .score-meta-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+    .zone-pill {
+      display: inline-block; padding: 6px 16px; border-radius: 99px;
+      font-size: 15px; font-weight: 800; border: 2px solid;
+    }
+    .zone-desc { font-size: 13px; color: var(--muted); line-height: 1.7; margin-bottom: 20px; }
+
+    /* Zone bar */
+    .zone-track {
+      display: grid;
+      grid-template-columns: 40fr 20fr 20fr 21fr;
+      border-radius: 12px; overflow: hidden; height: 56px;
+      margin-bottom: 24px; gap: 2px;
+    }
+    .zone-seg {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; gap: 3px;
+      opacity: 0.28; transition: opacity 0.4s;
+      border-radius: 0;
+    }
+    .zone-seg span { font-size: 10px; font-weight: 400; }
+    .zone-seg.safe    { background: rgba(94,227,154,0.18);  color: var(--ok); }
+    .zone-seg.caution { background: rgba(255,209,102,0.18); color: var(--warn); }
+    .zone-seg.danger  { background: rgba(255,151,71,0.18);  color: var(--orange); }
+    .zone-seg.critical{ background: rgba(255,107,107,0.18); color: var(--bad); }
+    .zone-seg.active  { opacity: 1; }
+
+    /* Rates */
+    .rates-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;
+    }
+    .rate-block {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid var(--line);
+      border-radius: 14px; padding: 16px;
+    }
+    .rate-label { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase; margin-bottom: 8px; }
+    .rate-value { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
+    .rate-bar-wrap {
+      height: 7px; background: rgba(255,255,255,0.05);
+      border-radius: 99px; overflow: hidden; margin-bottom: 6px;
+    }
+    .rate-bar-fill { height: 100%; border-radius: 99px; transition: width 0.8s ease; width: 0%; }
+    .rate-bench { font-size: 10px; color: var(--muted); }
+
+    /* Balance */
+    .balance-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 13px 16px; border-radius: 12px;
+      border: 1px solid var(--line); margin-bottom: 16px;
+      background: rgba(255,255,255,0.02);
+    }
+    .balance-label { font-size: 13px; color: var(--muted); }
+    .balance-val { font-size: 16px; font-weight: 700; }
+
+    /* Action */
+    .action-block {
+      padding: 15px 16px; border-radius: 14px;
+      border: 1px dashed rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.02); margin-bottom: 16px;
+    }
+    .action-label-text { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+    .action-text { font-size: 14px; line-height: 1.65; }
+
+    /* Priorities */
+    .prio-block { margin-bottom: 20px; }
+    .prio-title { font-size: 11px; color: var(--muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 12px; }
+    .prio-list { list-style: none; display: grid; gap: 9px; }
+    .prio-item {
+      display: flex; gap: 12px; align-items: flex-start;
+      padding: 13px 14px; border: 1px solid var(--line);
+      border-radius: 12px; background: rgba(255,255,255,0.02);
+    }
+    .prio-num {
+      font-size: 11px; font-weight: 800; color: var(--accent);
+      background: rgba(106,167,255,0.12); border-radius: 99px;
+      width: 22px; height: 22px; display: flex; align-items: center;
+      justify-content: center; flex-shrink: 0;
+    }
+    .prio-content {}
+    .prio-name { font-size: 14px; font-weight: 600; margin-bottom: 3px; }
+    .prio-hint { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* ===== TOAST ===== */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%;
+      transform: translateX(-50%);
+      background: rgba(18,20,26,0.96);
+      border: 1px solid var(--line); border-radius: 12px;
+      padding: 10px 18px; font-size: 13px; color: var(--text);
+      display: none; z-index: 999;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4); white-space: nowrap;
+    }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: #111319; border-top: 1px solid var(--line);
+      padding: 24px 40px; display: flex;
+      align-items: center; justify-content: space-between;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 700; }
+    .footer-copy { font-size: 12px; color: #444; }
+
+    @media (max-width: 600px) {
+      header { padding: 0 16px; }
+      main { padding: 28px 14px 60px; }
+      .card { padding: 18px 16px; }
+      h1 { font-size: 22px; }
+      .form-row { grid-template-columns: 1fr; gap: 0; }
+      .big-num { font-size: 52px; }
+      footer { flex-direction: column; gap: 10px; padding: 20px 16px; }
+    }
+    @media (max-width: 420px) {
+      .rates-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6aa7ff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <a href="../index.html" class="back-link">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+    トップへ戻る
+  </a>
+</header>
+
+<main>
+
+  <div class="hero">
+    <div class="badge">
+      <span class="dot"></span>
+      API不要 &nbsp;/&nbsp; ブラウザ完結 &nbsp;/&nbsp; 最短3項目
+    </div>
+    <h1>家計圧迫指数チェック</h1>
+    <p>家計の苦しさを「感覚」ではなく「ゾーン」で可視化。<br>
+      収入・住居費・固定費を入力するだけで圧迫指数（0〜100）と今すぐやるべき改善アクションが分かります。</p>
+  </div>
+
+  <!-- INPUT CARD -->
+  <div class="card">
+    <div class="card-title">家計データを入力</div>
+
+    <!-- Income type toggle -->
+    <div style="margin-bottom:6px;">
+      <div class="field-label" style="margin-bottom:10px;">収入の入力方法 <span class="field-tag">必須</span></div>
+      <div class="income-tabs">
+        <button class="income-tab active" id="tabNet">手取り月収</button>
+        <button class="income-tab" id="tabGross">年収（額面）</button>
+      </div>
+    </div>
+
+    <div id="netSection" class="form-group">
+      <label class="field-label" for="incomeNet">手取り月収</label>
+      <div class="input-wrap">
+        <input type="number" id="incomeNet" min="0" step="0.5" placeholder="例：25">
+        <span class="input-unit">万円 / 月</span>
+      </div>
+      <p class="field-hint">税・社会保険控除後の実際の手取り額を入力すると精度が上がります。</p>
+    </div>
+    <div id="grossSection" class="form-group hidden">
+      <label class="field-label" for="incomeGross">年収（額面）</label>
+      <div class="input-wrap">
+        <input type="number" id="incomeGross" min="0" step="10" placeholder="例：500">
+        <span class="input-unit">万円 / 年</span>
+      </div>
+      <p class="field-hint">※ 手取り換算：年収 × 0.75 ÷ 12 で概算します（実際の手取りと異なる場合があります）。</p>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="field-label" for="housing">住居費 <span class="field-tag">必須</span></label>
+        <div class="input-wrap">
+          <input type="number" id="housing" min="0" step="0.5" placeholder="例：7.5">
+          <span class="input-unit">万円 / 月</span>
+        </div>
+        <p class="field-hint">家賃 or ローン返済額</p>
+      </div>
+      <div class="form-group">
+        <label class="field-label" for="fixedCosts">固定費 <span class="field-tag">必須</span></label>
+        <div class="input-wrap">
+          <input type="number" id="fixedCosts" min="0" step="0.5" placeholder="例：5">
+          <span class="input-unit">万円 / 月</span>
+        </div>
+        <p class="field-hint">通信・保険・サブスク・車など合計</p>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="optional-toggle" id="optToggle">
+      <span class="tog-arrow">▶</span>
+      任意：変動費・貯蓄を追加して精度を上げる
+    </div>
+    <div class="optional-body" id="optBody">
+      <div class="form-row" style="margin-top:16px;">
+        <div class="form-group">
+          <label class="field-label" for="variable">変動費 <span class="field-tag">任意</span></label>
+          <div class="input-wrap">
+            <input type="number" id="variable" min="0" step="0.5" placeholder="例：8">
+            <span class="input-unit">万円 / 月</span>
+          </div>
+          <p class="field-hint">食費・日用品・外食など（ざっくりOK）</p>
+        </div>
+        <div class="form-group">
+          <label class="field-label" for="savings">貯蓄 <span class="field-tag">任意</span></label>
+          <div class="input-wrap">
+            <input type="number" id="savings" min="0" step="0.5" placeholder="例：3">
+            <span class="input-unit">万円 / 月</span>
+          </div>
+          <p class="field-hint">積立・投資・貯金など合計</p>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="field-label" for="dependents">扶養人数 <span class="field-tag">任意</span></label>
+        <select id="dependents">
+          <option value="0">扶養家族なし</option>
+          <option value="1">子ども1人</option>
+          <option value="2">子ども2人</option>
+          <option value="3">子ども3人以上</option>
+          <option value="adult">大人の扶養家族あり</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btnCalc">指数を診断する</button>
+      <button class="btn" id="btnReset">リセット</button>
+    </div>
+    <p class="footnote">※ 入力データはブラウザ内のみで処理されます（サーバー送信なし）。</p>
+  </div>
+
+  <!-- RESULT CARD -->
+  <div class="card" id="result-card">
+    <div class="card-title">家計圧迫レポート</div>
+
+    <!-- Score hero -->
+    <div class="score-hero">
+      <div class="big-num" id="bigNum">—</div>
+      <div class="score-meta">
+        <div class="score-meta-label">家計圧迫指数 / 100</div>
+        <div class="zone-pill" id="zonePill">—</div>
+      </div>
+    </div>
+    <p class="zone-desc" id="zoneDesc"></p>
+
+    <!-- Zone bar -->
+    <div class="zone-track">
+      <div class="zone-seg safe"     id="z0">安全<span>0〜39</span></div>
+      <div class="zone-seg caution"  id="z1">注意<span>40〜59</span></div>
+      <div class="zone-seg danger"   id="z2">危険<span>60〜79</span></div>
+      <div class="zone-seg critical" id="z3">赤信号<span>80〜100</span></div>
+    </div>
+
+    <!-- Rate breakdown -->
+    <div class="rates-grid">
+      <div class="rate-block">
+        <div class="rate-label">住居費負担率</div>
+        <div class="rate-value" id="housingRateVal">—</div>
+        <div class="rate-bar-wrap">
+          <div class="rate-bar-fill" id="housingBarFill"></div>
+        </div>
+        <div class="rate-bench">目安：25%以内 ／ 30%超で注意</div>
+      </div>
+      <div class="rate-block">
+        <div class="rate-label">固定費負担率</div>
+        <div class="rate-value" id="fixedRateVal">—</div>
+        <div class="rate-bar-wrap">
+          <div class="rate-bar-fill" id="fixedBarFill"></div>
+        </div>
+        <div class="rate-bench">目安：15%以内 ／ 20%超で注意</div>
+      </div>
+    </div>
+
+    <!-- Balance (optional) -->
+    <div id="balanceSection" style="display:none;">
+      <div class="balance-row">
+        <span class="balance-label">月間残余（収入 − 全支出）</span>
+        <span class="balance-val" id="balanceVal">—</span>
+      </div>
+    </div>
+
+    <!-- Today's action -->
+    <div class="action-block">
+      <div class="action-label-text">今月の一手</div>
+      <div class="action-text" id="actionText">—</div>
+    </div>
+
+    <!-- Priorities -->
+    <div class="prio-block">
+      <div class="prio-title">改善優先順位（Top 3）</div>
+      <ol class="prio-list" id="prioList"></ol>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" id="btnShare">結果をシェア</button>
+      <button class="btn outline" id="btnCopy">テキストコピー</button>
+    </div>
+    <p class="footnote">
+      ※ 本ツールは生活の目安を示す簡易チェックです。税制・地域差・世帯構成により実態は異なります。<br>
+      ※ 深刻な場合はFP（ファイナンシャルプランナー）等の専門家にご相談ください。
+    </p>
+  </div>
+
+</main>
+
+<footer>
+  <div class="footer-logo">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#555" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    </svg>
+    ツールNavi
+  </div>
+  <div class="footer-copy">© Copyright Information.</div>
+</footer>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===========================
+   ZONE / ACTION DATA
+=========================== */
+const ZONE = {
+  safe:     { label: '安全ゾーン',  color: 'var(--ok)',     border: 'rgba(94,227,154,0.5)',   seg: 'z0' },
+  caution:  { label: '注意ゾーン',  color: 'var(--warn)',   border: 'rgba(255,209,102,0.5)',  seg: 'z1' },
+  danger:   { label: '危険ゾーン',  color: 'var(--orange)', border: 'rgba(255,151,71,0.5)',   seg: 'z2' },
+  critical: { label: '赤信号',      color: 'var(--bad)',    border: 'rgba(255,107,107,0.5)',  seg: 'z3' },
+};
+
+const ZONE_DESC = {
+  safe:     '今の家計は安全ゾーン。生活防衛資金を崩さずに前に進めます。貯蓄・資産運用を強化する好機です。',
+  caution:  '注意ゾーン。今すぐ破綻はしないが余力が薄く、イベント支出で崩れる可能性があります。',
+  danger:   '危険ゾーン。固定費が重く、車検・冠婚葬祭などのイベントで家計が崩れやすい状態です。',
+  critical: '赤信号。構造的に圧迫が強い状態です。住居費または固定費の抜本的な見直しが最優先です。',
+};
+
+const ACTIONS = {
+  safe:     '固定費の棚卸しを月1回・5分だけやってみる。まず通信費（スマホ＋ネット）から確認する。',
+  caution:  'スマホ（通信費）のプランを今日確認する。格安SIMへの乗り換えで月2,000〜8,000円削減できる場合が多い。',
+  danger:   '保険（掛け捨て）の内容を確認し、不要な特約を1つ外す。月3,000〜10,000円の削減余地がある可能性が高い。',
+  critical: '住居費を下げる選択肢を3つ書き出す（借換 / 住み替え / 返済期間の延長）。',
+};
+
+const PRIO_DEFAULT = [
+  { name: '通信費（スマホ＋ネット）の最適化',  hint: '格安SIMやプラン変更で月2,000〜8,000円削減できる場合が多い。今日確認してみる。' },
+  { name: 'サブスク（動画・音楽・アプリ）の棚卸し', hint: '使っていないサービスを3つ書き出して解約する。気づかず課金が続きやすい。' },
+  { name: '保険（民間保険）の内容整理', hint: '掛け捨て保険の内容確認・不要な特約の削除。FP相談が最も費用対効果が高い。' },
+];
+
+/* ===========================
+   UTILS
+=========================== */
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.style.display = 'block';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { el.style.display = 'none'; }, 2200);
+}
+
+function fmtMan(yen) {
+  const man = yen / 10000;
+  return (Number.isInteger(man) ? man : man.toFixed(1)) + '万円';
+}
+function fmtPct(rate) { return Math.round(rate * 100) + '%'; }
+
+function rateColor(rate, benchmarks) {
+  for (const [threshold, color] of benchmarks) {
+    if (rate <= threshold) return color;
+  }
+  return 'var(--bad)';
+}
+
+/* ===========================
+   SCORING
+=========================== */
+function calcIndex(inputs) {
+  const { incomeType, incomeNet, incomeGross, housing, fixed, variable, savings, dependents } = inputs;
+
+  // Monthly net (万円 → 円)
+  let monthlyNet;
+  if (incomeType === 'net') {
+    monthlyNet = incomeNet * 10000;
+  } else {
+    monthlyNet = incomeGross * 10000 * 0.75 / 12;
+  }
+  if (!monthlyNet || monthlyNet <= 0) return null;
+
+  const housingYen  = housing * 10000;
+  const fixedYen    = fixed   * 10000;
+  const variableYen = (variable != null && variable !== '') ? variable * 10000 : null;
+  const savingsYen  = (savings  != null && savings  !== '') ? savings  * 10000 : null;
+
+  const housingRate    = housingYen / monthlyNet;
+  const fixedRate      = fixedYen   / monthlyNet;
+  const totalFixedRate = (housingYen + fixedYen) / monthlyNet;
+
+  // Base
+  const base = totalFixedRate * 100;
+
+  // Housing penalty
+  const housingPenalty =
+    housingRate > 0.40 ? 30 :
+    housingRate > 0.35 ? 20 :
+    housingRate > 0.30 ? 12 :
+    housingRate > 0.25 ?  5 : 0;
+
+  // Fixed cost penalty
+  const fixedPenalty =
+    fixedRate > 0.30 ? 30 :
+    fixedRate > 0.25 ? 22 :
+    fixedRate > 0.20 ? 14 :
+    fixedRate > 0.15 ?  6 : 0;
+
+  // Savings bonus (optional)
+  let savingsBonus = 0;
+  if (savingsYen !== null) {
+    const sr = savingsYen / monthlyNet;
+    savingsBonus = sr >= 0.20 ? -8 : sr >= 0.10 ? -4 : sr >= 0.05 ? -1 : 0;
+  }
+
+  // Balance penalty (needs variable input)
+  let balancePenalty = 0;
+  let balance = null;
+  if (variableYen !== null) {
+    balance = monthlyNet - housingYen - fixedYen - variableYen - (savingsYen || 0);
+    balancePenalty =
+      balance < 0                   ? 15 :
+      balance < monthlyNet * 0.05   ?  8 :
+      balance < monthlyNet * 0.10   ?  4 : 0;
+  }
+
+  // Dependents penalty
+  const depMap = { '0': 0, '1': 2, '2': 4, '3': 6, 'adult': 5 };
+  const depPenalty = depMap[dependents] ?? 0;
+
+  const pressureIndex = Math.min(100, Math.max(0, Math.round(
+    base + housingPenalty + fixedPenalty + balancePenalty + savingsBonus + depPenalty
+  )));
+
+  const zoneKey =
+    pressureIndex >= 80 ? 'critical' :
+    pressureIndex >= 60 ? 'danger'   :
+    pressureIndex >= 40 ? 'caution'  : 'safe';
+
+  return { monthlyNet, housingYen, fixedYen, variableYen, savingsYen, balance,
+           housingRate, fixedRate, totalFixedRate, pressureIndex, zoneKey };
+}
+
+/* ===========================
+   PRIORITIES
+=========================== */
+function getPriorities(r) {
+  const prio = [];
+  if (r.housingRate > 0.30) {
+    prio.push({
+      name: '住居費（家賃・ローン）の再設計',
+      hint: '住居費が手取りの30%超です。借換・住み替え・返済計画の見直しが家計改善の最短ルートです。',
+    });
+  }
+  prio.push(PRIO_DEFAULT[0]); // 通信費
+  if (r.fixedRate > 0.20) {
+    prio.push(PRIO_DEFAULT[2]); // 保険
+  } else {
+    prio.push(PRIO_DEFAULT[1]); // サブスク
+  }
+  if (prio.length < 3) prio.push(PRIO_DEFAULT[2]);
+  return prio.slice(0, 3);
+}
+
+/* ===========================
+   RENDER RESULT
+=========================== */
+function renderResult(r) {
+  const z = ZONE[r.zoneKey];
+
+  // Big number + zone
+  document.getElementById('bigNum').textContent = r.pressureIndex;
+  document.getElementById('bigNum').style.color = z.color;
+  const pill = document.getElementById('zonePill');
+  pill.textContent = z.label;
+  pill.style.color = z.color;
+  pill.style.borderColor = z.border;
+  pill.style.background = z.border.replace('0.5', '0.1');
+
+  document.getElementById('zoneDesc').textContent = ZONE_DESC[r.zoneKey];
+
+  // Zone segments
+  ['z0','z1','z2','z3'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById(z.seg).classList.add('active');
+
+  // Rates
+  const hColor = rateColor(r.housingRate, [[0.25, 'var(--ok)'], [0.30, 'var(--warn)'], [0.35, 'var(--orange)']]);
+  const fColor = rateColor(r.fixedRate,   [[0.15, 'var(--ok)'], [0.20, 'var(--warn)'], [0.25, 'var(--orange)']]);
+
+  document.getElementById('housingRateVal').textContent = fmtPct(r.housingRate);
+  document.getElementById('housingRateVal').style.color = hColor;
+  document.getElementById('fixedRateVal').textContent   = fmtPct(r.fixedRate);
+  document.getElementById('fixedRateVal').style.color   = fColor;
+
+  setTimeout(() => {
+    document.getElementById('housingBarFill').style.width      = Math.min(100, Math.round(r.housingRate * 100 / 0.4 * 100)) + '%';
+    document.getElementById('housingBarFill').style.background = hColor;
+    document.getElementById('fixedBarFill').style.width        = Math.min(100, Math.round(r.fixedRate   * 100 / 0.35 * 100)) + '%';
+    document.getElementById('fixedBarFill').style.background   = fColor;
+  }, 80);
+
+  // Balance
+  if (r.balance !== null) {
+    const bSec = document.getElementById('balanceSection');
+    bSec.style.display = 'block';
+    const bVal = document.getElementById('balanceVal');
+    bVal.textContent = (r.balance >= 0 ? '+' : '') + fmtMan(r.balance);
+    bVal.style.color = r.balance < 0 ? 'var(--bad)' : r.balance < r.monthlyNet * 0.10 ? 'var(--warn)' : 'var(--ok)';
+  } else {
+    document.getElementById('balanceSection').style.display = 'none';
+  }
+
+  // Action
+  let action = ACTIONS[r.zoneKey];
+  if (r.housingRate > 0.33 && r.zoneKey !== 'safe') {
+    action = ACTIONS.critical;
+  }
+  document.getElementById('actionText').textContent = action;
+
+  // Priorities
+  const list = document.getElementById('prioList');
+  list.innerHTML = '';
+  getPriorities(r).forEach((p, i) => {
+    const li = document.createElement('li');
+    li.className = 'prio-item';
+    li.innerHTML = `
+      <div class="prio-num">${i + 1}</div>
+      <div class="prio-content">
+        <div class="prio-name">${p.name}</div>
+        <div class="prio-hint">${p.hint}</div>
+      </div>`;
+    list.appendChild(li);
+  });
+
+  // Show card
+  const card = document.getElementById('result-card');
+  card.style.display = 'block';
+  card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  // Share
+  const shareText = buildShare(r);
+  document.getElementById('btnCopy').onclick = async () => {
+    try { await navigator.clipboard.writeText(shareText); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = shareText; document.body.appendChild(ta);
+      ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    toast('コピーしました ✓');
+  };
+  document.getElementById('btnShare').onclick = async () => {
+    try {
+      if (navigator.share) { await navigator.share({ text: shareText }); }
+      else { await navigator.clipboard.writeText(shareText); toast('シェア非対応のためコピーしました'); }
+    } catch { toast('キャンセルしました'); }
+  };
+}
+
+function buildShare(r) {
+  const url  = location.href.split('#')[0];
+  const zone = ZONE[r.zoneKey].label;
+  return `家計圧迫指数：【${r.pressureIndex}】（${zone}）\n住居費負担率：${fmtPct(r.housingRate)}　固定費負担率：${fmtPct(r.fixedRate)}\n${ACTIONS[r.zoneKey]}\n${url}\n#家計 #固定費削減 #ツールNavi`;
+}
+
+/* ===========================
+   INCOME TABS
+=========================== */
+document.getElementById('tabNet').addEventListener('click', () => {
+  document.getElementById('tabNet').classList.add('active');
+  document.getElementById('tabGross').classList.remove('active');
+  document.getElementById('netSection').classList.remove('hidden');
+  document.getElementById('grossSection').classList.add('hidden');
+});
+document.getElementById('tabGross').addEventListener('click', () => {
+  document.getElementById('tabGross').classList.add('active');
+  document.getElementById('tabNet').classList.remove('active');
+  document.getElementById('grossSection').classList.remove('hidden');
+  document.getElementById('netSection').classList.add('hidden');
+});
+
+/* ===========================
+   OPTIONAL TOGGLE
+=========================== */
+document.getElementById('optToggle').addEventListener('click', function () {
+  this.classList.toggle('open');
+  document.getElementById('optBody').classList.toggle('visible');
+});
+
+/* ===========================
+   CALC
+=========================== */
+document.getElementById('btnCalc').addEventListener('click', () => {
+  const isNet   = document.getElementById('tabNet').classList.contains('active');
+  const incomeNet   = parseFloat(document.getElementById('incomeNet').value);
+  const incomeGross = parseFloat(document.getElementById('incomeGross').value);
+  const housing     = parseFloat(document.getElementById('housing').value);
+  const fixedCosts  = parseFloat(document.getElementById('fixedCosts').value);
+
+  if (isNet  && (isNaN(incomeNet)   || incomeNet   <= 0)) { toast('手取り月収を入力してください'); return; }
+  if (!isNet && (isNaN(incomeGross) || incomeGross <= 0)) { toast('年収を入力してください'); return; }
+  if (isNaN(housing)   || housing   < 0) { toast('住居費を入力してください'); return; }
+  if (isNaN(fixedCosts)|| fixedCosts < 0){ toast('固定費を入力してください'); return; }
+
+  const variable   = document.getElementById('variable').value;
+  const savings    = document.getElementById('savings').value;
+  const dependents = document.getElementById('dependents').value;
+
+  const r = calcIndex({
+    incomeType: isNet ? 'net' : 'gross',
+    incomeNet, incomeGross,
+    housing, fixed: fixedCosts,
+    variable: variable !== '' ? parseFloat(variable) : null,
+    savings:  savings  !== '' ? parseFloat(savings)  : null,
+    dependents,
+  });
+
+  if (!r) { toast('入力値を確認してください'); return; }
+  renderResult(r);
+});
+
+/* ===========================
+   RESET
+=========================== */
+document.getElementById('btnReset').addEventListener('click', () => {
+  ['incomeNet','incomeGross','housing','fixedCosts','variable','savings'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('dependents').value = '0';
+  document.getElementById('result-card').style.display = 'none';
+  document.getElementById('balanceSection').style.display = 'none';
+  toast('リセットしました');
+});
+</script>
+
+</body>
+</html>
